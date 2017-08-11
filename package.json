@@ -1,0 +1,24 @@
+{
+  "name": "tendril-cli",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "bin": "./lib/cli.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "./node_modules/.bin/tsc -p src"
+  },
+  "author": "Lasana Murray <info@quenk.com> (http://quenk.com)",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@quenk/jcon": "^0.2.0",
+    "@quenk/rcl": "^0.1.0",
+    "afpl": "^0.4.0",
+    "docopt": "^0.6.2",
+    "fluture": "^7.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^8.0.20",
+    "bluebird": "^3.5.0"
+  }
+}
