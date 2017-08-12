@@ -1,9 +1,11 @@
 {
-  "name": "tendril-cli",
+  "name": "@quenk/tdc",
   "version": "0.0.1",
   "description": "",
   "main": "index.js",
-  "bin": "./lib/cli.js",
+  "bin": {
+    "tdc": "./lib/cli.js"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "./node_modules/.bin/tsc -p src"
