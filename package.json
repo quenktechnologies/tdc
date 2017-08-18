@@ -1,6 +1,6 @@
 {
   "name": "@quenk/tdc",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "",
   "main": "index.js",
   "bin": {
@@ -12,7 +12,6 @@
   },
   "author": "Lasana Murray <info@quenk.com> (http://quenk.com)",
   "license": "Apache-2.0",
-  
   "dependencies": {
     "@quenk/jcon": "^0.3.0",
     "@quenk/rcl": "^0.2.0",
