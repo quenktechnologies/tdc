@@ -136,8 +136,11 @@ const execute = (path:string) : fluture.Future<never, void>=>
        compileApp(path)
       .chain((txt:string)=>writeFile(`${path}/index.ts`, txt))
       .chain(()=> writeFile(`${path}/start.ts`,
+        `import 'source-map-support/register';${os.EOL}`+
+        `import * as dotenv from 'dotenv';${os.EOL}`+
         `import * as tendril from '@quenk/tendril';${os.EOL}`+
         `import createMain from './';${os.EOL}${os.EOL}`+
+        `(any dotenv).config()`+
         `let app = new tendril.app.Application(createMain('/'));${os.EOL}`+
         `app.start();`
       )))
