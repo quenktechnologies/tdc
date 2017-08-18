@@ -140,7 +140,7 @@ const execute = (path:string) : fluture.Future<never, void>=>
         `import * as dotenv from 'dotenv';${os.EOL}`+
         `import * as tendril from '@quenk/tendril';${os.EOL}`+
         `import createMain from './';${os.EOL}${os.EOL}`+
-        `(any dotenv).config()`+
+        `(<any> dotenv).config();${os.EOL}`+
         `let app = new tendril.app.Application(createMain('/'));${os.EOL}`+
         `app.start();`
       )))
