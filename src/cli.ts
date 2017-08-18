@@ -99,13 +99,12 @@ const confFile = (path:string) => (routes:string) =>
   .map(conf => 
 
     `import * as tendril from '@quenk/tendril';${os.EOL}`+
-    `import * as Bluebird from 'bluebird';${os.EOL}`+
     `import * as express from 'express';${os.EOL}`+
     `${routes}${os.EOL}${os.EOL}`+
     `export const CONF = ${conf} ${os.EOL}` +
     `${os.EOL}`+
     `export default (name:string)=>`+
-    `new tendril.app.Module(name, CONF, routes)`
+    `new tendril.app.Module(name, __dirname, CONF, routes)`
   
   );
 
