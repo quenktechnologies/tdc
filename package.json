@@ -14,7 +14,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@quenk/jcon": "^0.3.0",
-    "@quenk/rcl": "^0.2.0",
+    "@quenk/rcl": "^0.3.0",
     "afpl": "^0.5.0",
     "docopt": "^0.6.2",
     "fluture": "^7.0.1"
