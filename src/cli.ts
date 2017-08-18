@@ -57,6 +57,9 @@ const stat = (path:string):fluture.Future<never, fs.Stats> =>
 const isDirectory = (path:string) : fluture.Future<never, Either<boolean, boolean>>=> 
   stat(path).chain(s=>fluture.of(Either.fromBoolean(s.isDirectory())));
 
+const isFile = (path:string) : fluture.Future<never, Either<boolean, boolean>>=> 
+  stat(path).chain(s=>fluture.of(Either.fromBoolean(s.isFile())));
+
 const readdir = (path:string) : fluture.Future<never, string[]> =>
   fluture.node<never, string[]>(cb => fs.readdir(path, cb));
 
@@ -95,19 +98,22 @@ const confFile = (path:string) => (routes:string) =>
   .chainRej(e=>compileError(path, e))
   .map(conf => 
 
-    `import * as tendril from '@quenk/tendril';`+
-    `${routes}${os.EOL}`+
-    `${os.EOL}`+
+    `import * as tendril from '@quenk/tendril';${os.EOL}`+
+    `import * as Bluebird from 'bluebird';${os.EOL}`+
+    `import * as express from 'express';${os.EOL}`+
+    `${routes}${os.EOL}${os.EOL}`+
     `export const CONF = ${conf} ${os.EOL}` +
     `${os.EOL}`+
-    `export const create = (path:string, conf:Conf, app:Application)=>`+
-    `new Module(path, conf, app)`
+    `export default (name:string)=>`+
+    `new tendril.app.Module(name, CONF, routes)`
   
   );
 
 const compileModule = (path:string) =>  routeFile(`${path}/routes`).chain(confFile(`${path}/conf`));
 
-const compileApp = (path:string)=> compileModule(path).map(txt=> `//this is an app ${txt}`);
+const compileApp = (path:string)=> 
+  compileModule(path)
+  .map(txt=> `${txt}`);
 
 const printError = (e:Error) => console.error(e.stack?e.stack:e);
 
@@ -129,7 +135,13 @@ const execute = (path:string) : fluture.Future<never, void>=>
                                 .chain((txt:string)=> writeFile(`${path}/index.ts`, txt))))))
    .orRight(()=>
        compileApp(path)
-      .chain((txt:string)=>writeFile(`${path}/index.ts`, txt)))
+      .chain((txt:string)=>writeFile(`${path}/index.ts`, txt))
+      .chain(()=> writeFile(`${path}/start.ts`,
+        `import * as tendril from '@quenk/tendril';${os.EOL}`+
+        `import createMain from './';${os.EOL}${os.EOL}`+
+        `let app = new tendril.app.Application(createMain('/'));${os.EOL}`+
+        `app.start();`
+      )))
    .takeRight()
  
 execute(expand(args['<module>'], process.cwd())).fork(printError, noop)
