@@ -101,10 +101,10 @@ const confFile = (path:string) => (routes:string) =>
     `import * as tendril from '@quenk/tendril';${os.EOL}`+
     `import * as express from 'express';${os.EOL}`+
     `${routes}${os.EOL}${os.EOL}`+
-    `export const CONF = ${conf} ${os.EOL}` +
+    `export const conf = (process)=>(${conf}) ${os.EOL}` +
     `${os.EOL}`+
     `export default (name:string)=>`+
-    `new tendril.app.Module(name, __dirname, CONF, routes)`
+    `new tendril.app.Module(name, __dirname, conf(process), routes)`
   
   );
 
