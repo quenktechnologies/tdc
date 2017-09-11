@@ -1,6 +1,6 @@
 {
   "name": "@quenk/tdc",
-  "version": "0.12.7",
+  "version": "0.12.8",
   "description": "",
   "main": "index.js",
   "bin": {
