@@ -104,7 +104,7 @@ const confFile = (path: string) => (routes: string) =>
             `export const conf = ()=>(${conf}) ${os.EOL}` +
             `${os.EOL}` +
             `export default (name:string)=>` +
-            `new tendril.app.Module(name, __dirname, conf(process), routes)`
+            `new tendril.app.Module(name, __dirname, conf(), routes)`
 
         );
 
