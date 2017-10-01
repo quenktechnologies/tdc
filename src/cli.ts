@@ -123,7 +123,7 @@ const compileError = (path: string, e: Error) =>
  */
 const routeFile = (path: string): Promise<string> =>
     isFile(path)
-        .then(e => e.cata(() => Promise.resolve(''), () =>
+        .then(e => e.cata(() => compile('', rcl.compile), () =>
             readFile(path).then(contents => compile(contents, rcl.compile))))
         .catch(e => compileError(path, e));
 
@@ -132,7 +132,7 @@ const routeFile = (path: string): Promise<string> =>
  */
 const confFile = (path: string) => (routes: string) =>
     isFile(path)
-        .then(e => e.cata(() => Promise.resolve(''), () =>
+        .then(e => e.cata(() => Promise.resolve('{}'), () =>
             readFile(path)
                 .then(contents =>
                     compile(contents, jcon.compile))))
