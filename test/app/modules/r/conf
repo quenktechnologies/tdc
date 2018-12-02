@@ -1,0 +1,8 @@
+
+app.modules = {
+
+  users = ./users
+  clients = ./clients
+  transactions = ./transactions
+
+}

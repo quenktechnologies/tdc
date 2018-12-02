@@ -1,0 +1,20 @@
+{
+    "compilerOptions": {
+        "baseUrl": "src",
+        "lib": ["ES2015"],
+        "module": "commonjs",
+        "sourceMap": true,
+        "target": "es5",
+        "types": ["node"],
+        "rootDir": ".",
+        "rootDirs":["src/app","dest/app"],
+        "moduleResolution": "node",
+        "allowUnreachableCode": true,
+        "noUnusedParameters": true,
+        "noImplicitAny": true,
+        "sourceMap": true,
+        "typeRoots": ["node_modules/@types", "../common"]
+    },
+    "exclude": ["node_modules", "../node_modules"]
+
+}
