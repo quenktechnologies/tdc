@@ -23,7 +23,7 @@ app.middleware.available = {
 
 app.modules = {
 
-  r = ./modules/r
+  r = ./modules/r#default
 
 }
 

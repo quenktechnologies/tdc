@@ -2,7 +2,7 @@
 
 -- Main routes.
 
-GET / = index
-GET /login = showLoginForm
-POST /login = authenticate
-GET /logout = logout
+GET /  index
+GET /login showLoginForm
+POST /login authenticate
+GET /logout logout
