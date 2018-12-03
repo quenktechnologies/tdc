@@ -9,13 +9,13 @@ app.middleware.available = {
 
   json = {
 
-    module = body-parser|json) 
+    module = body-parser#json
 
   }
 
   urlencoded = {
 
-    module = $(body-parser|urlencoded) 
+    module = body-parser#urlencoded
 
   }
 
