@@ -1,4 +1,4 @@
-%import get,post,patch,delete from './transactions'
+%import get,post,patch,delete from "./transactions"
 
 GET       /:id        =  get
 POST      /           =  post
