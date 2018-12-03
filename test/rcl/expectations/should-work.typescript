@@ -1,0 +1,7 @@
+(m:Module) => {
+
+m.install('put','/:id',[check,update].concat([]));
+m.install('get','/',[].concat([,()=>pure(show('index', {  }))]));
+m.install('delete','/:id',[check,delete].concat([]));
+
+}

@@ -1,20 +1,18 @@
 {
     "compilerOptions": {
         "baseUrl": "src",
-        "lib": ["ES2015"],
+        "lib": ["ES2015", "DOM"],
         "module": "commonjs",
-        "sourceMap": true,
         "target": "es5",
-        "types": ["node"],
         "rootDir": ".",
-        "rootDirs":["src/app","dest/app"],
         "moduleResolution": "node",
         "allowUnreachableCode": true,
         "noUnusedParameters": true,
-        "noImplicitAny": true,
+        "noUnusedLocals": true,
         "sourceMap": true,
-        "typeRoots": ["node_modules/@types", "../common"]
+        "declaration": true,
+        "types": ["node", "mocha"],
+        "typeRoots": ["node_modules/@types"]
     },
-    "exclude": ["node_modules", "../node_modules"]
-
+    "exclude": ["node_modules"]
 }

@@ -1,8 +1,0 @@
-%import index,showLoginForm,authenticate,logout from "./main"
-
--- Main routes.
-
-GET / = index
-GET /login = showLoginForm
-POST /login = authenticate
-GET /logout = logout

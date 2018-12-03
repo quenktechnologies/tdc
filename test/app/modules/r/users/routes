@@ -1,5 +1,0 @@
-%import get,post,patch,delete from './users'
-
-GET       /:id        =  get
-POST      /           =  post
-PATCH     /:id        =  patch
