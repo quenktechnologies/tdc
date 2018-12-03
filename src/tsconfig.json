@@ -1,8 +1,8 @@
 {
     "compilerOptions": {
         "baseUrl": "src",
-        "lib": ["ES2015"],
-        "noImplicitAny":true,
+        "lib": ["ES2017", "DOM"],
+        "noImplicitAny": true,
         "module": "commonjs",
         "target": "es5",
         "rootDir": ".",

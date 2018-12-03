@@ -1,207 +1,257 @@
-#! /usr/bin/env node
-///<reference path='Error.d.ts'/>
-///<reference path='docopt.d.ts'/>
-import * as fs from 'fs';
-import * as os from 'os';
-import * as docopt from 'docopt';
-import * as rcl from '@quenk/rcl';
-import * as jcon from '@quenk/jcon';
-import * as Promise from 'bluebird';
-import { fromCallback as node } from 'bluebird';
-import { resolve } from 'path';
-import { Either } from 'afpl';
+import * as jcon from './jcon';
+import * as jconAst from '@quenk/jcon/lib/ast';
+import * as rcl from './rcl';
+import * as rclAst from '@quenk/rcl/lib/ast';
+import { EOL } from 'os';
+import {
+    Path,
+    exists,
+    isDirectory,
+    isFile,
+    readTextFile,
+    listDA,
+    writeTextFile
+} from '@quenk/noni/lib/io/file';
+import { Future, pure, raise, parallel } from '@quenk/noni/lib/control/monad/future';
+import { noop } from '@quenk/noni/lib/data/function';
+
+export const FILE_CONF = 'conf';
+export const FILE_ROUTE = 'routes';
+export const FILE_INDEX = 'index.ts';
+export const FILE_START = 'start.ts';
+
+type ParsedFiles = [JCONFile, RCLFile];
+
+type Parser<A> = (src: string) => Future<A>;
+
+type TypeScript = string;
+
+type Context = jcon.Context & rcl.Context;
+
+type JCONFile = jconAst.File;
+
+type RCLFile = rclAst.File;
 
 export interface Arguments {
 
-    '--modules': boolean
-    '<module>': string
+    '<module>': string,
+
+    '--no-recurse': boolean,
+
+    '--no-start': boolean,
+
+    '--ignore': string[]
 
 }
 
-export interface Compiler {
+export interface Options {
 
-    (s: string): string
+    module: string,
 
-}
+    noRecurse: boolean,
 
-/**
- * CompileError
- */
-export class CompileError extends Error {
+    noStart: boolean,
 
-    constructor(public path: string, public error: string) {
-
-        super(`Error while processing ${path}:${os.EOL}${error}`);
-
-        if (Error.hasOwnProperty('captureStackTrace'))
-            Error.captureStackTrace(this, this.constructor);
-
-        if (Object.setPrototypeOf) {
-            Object.setPrototypeOf(this, Error);
-        } else {
-            (<any>this).__proto__ = Error;
-        }
-
-
-    }
+    ignore: RegExp[]
 
 }
 
-/**
- * stat wrapper
- */
-const stat = (path: string) =>
-    node(cb => fs.stat(path, cb));
+const context = (cwd: Path) => ({
+
+    loader: (path: Path) => readTextFile(`${cwd}/${path}`),
+
+    jcon: jcon.parse,
+
+    rcl: rcl.parse,
+
+    tendril: '@quenk/tendril',
+
+    EOL
+
+});
 
 /**
- * isDirectory wrapper.
+ * args2Opts function.
  */
-const isDirectory = (path: string) =>
-    stat(path)
-        .then(s => Promise.resolve(Either.fromBoolean(s.isDirectory())))
-        .catch(() => Promise.resolve(Either.left<boolean, boolean>(false)));
+export const args2Opts = (args: Arguments): Options => ({
 
-/**
- * isFile wrapper
- */
-const isFile = (path: string) =>
-    stat(path)
-        .then(s => Promise.resolve(Either.fromBoolean(s.isFile())))
-        .catch(() => Promise.resolve(Either.left<boolean, boolean>(false)));
+    module: args['<module>'],
 
-/**
- * readdir wrapper
- */
-const readdir = (path: string) =>
-    node(cb => fs.readdir(path, cb));
+    noRecurse: args['--no-recurse'],
 
-/**
- * readFile wrapper
- */
-const readFile = (path: string) =>
-    node(cb => fs.readFile(path, 'utf8', cb));
+    noStart: args['--no-start'],
 
-/**
- * writeFile wrapper
- */
-const writeFile = (path: string, contents: string) =>
-    node(cb => fs.writeFile(path, contents, cb));
+    ignore: ['node_modules'].concat(args['--ignore']).map(p => new RegExp(p))
 
-/**
- * compile applies a compiler to some contents.
- */
-const compile = (contents: string, c: Compiler) =>
-    Promise.try(() => c(contents));
-
-/**
- * template generates the content of the file.
- */
-const template = (routes: string, conf: string) =>
-    `import * as tendril from '@quenk/tendril';${os.EOL}` +
-    `import * as express from 'express';${os.EOL}` +
-    `${routes}${os.EOL}${os.EOL}` +
-    `export const conf = ()=>(${conf}) ${os.EOL}` +
-    `${os.EOL}` +
-    `export default (name:string)=>` +
-    `new tendril.app.Module(name, __dirname, conf(), routes)`;
+})
 
 /**
  * startTemplate provides the contant of the start.js file.
  */
-const startTemplate = () =>
-    `import 'source-map-support/register';${os.EOL}` +
-    `import * as tendril from '@quenk/tendril';${os.EOL}` +
-    `import createMain from './';${os.EOL}${os.EOL}` +
-    `let app = new tendril.app.Application(createMain('/'));${os.EOL}` +
-    `app.start();`
-
-const compileError = (path: string, e: Error) =>
-    Promise.reject(new CompileError(path, (e.message)));
+export const startTemplate = () =>
+    `import {App} from '@quenk/tendril/lib/app';${EOL}` +
+    `import {template} from './';${EOL}${EOL}` +
+    `let app = new App(template, {});${EOL}` +
+    `app.start();`;
 
 /**
- * routeFile compiles the route file.
+ * isModule test.
+ *
+ * A directory is a module if it has a conf or routes file or both.
  */
-const routeFile = (path: string): Promise<string> =>
-    isFile(path)
-        .then(e => e.cata(() => compile('', rcl.compile), () =>
-            readFile(path).then(contents => compile(contents, rcl.compile))))
-        .catch(e => compileError(path, e));
+export const isModule = (path: Path): Future<boolean> =>
+    exists(path)
+        .chain(yes => yes ?
+            isDirectory(path)
+                .chain(yes => (!yes) ?
+                    pure(false) :
+                    parallel([
+                        isFile(`${path}/${FILE_CONF}`),
+                        isFile(`${path}/${FILE_ROUTE}`)
+                    ])
+                        .chain(yess => pure((yess.filter(y => y).length > 0)))) :
+            pure(false));
 
 /**
- * confFile compiles the conf file.
+ * exec the program.
  */
-const confFile = (path: string) => (routes: string) =>
-    isFile(path)
-        .then(e => e.cata(() => Promise.resolve('{}'), () =>
-            readFile(path)
-                .then(contents =>
-                    compile(contents, jcon.compile))))
-        .then(conf => template(routes, conf))
-        .catch(e => compileError(path, e));
+export const exec = (path: Path, opts: Options): Future<void> =>
+    assertExists(path)
+        .chain(() => assertDirectory(path))
+        .chain(() => getTDCFiles(path))
+        .chain(compile(path))
+        .chain(ts => writeIndexFile(path, ts))
+        .chain(() => opts.noRecurse ? pure(undefined) : execR(path, opts))
+        .chain(() => opts.noStart ? pure(undefined) : writeStartFile(path));
 
-const someIsFile = (paths: string[]) =>
-    paths
-        .reduce((p, c) => p.then(e =>
-            e.cata(() => isFile(c), () => Promise.resolve(e))),
-        Promise.resolve(Either.left<boolean, boolean>(false)));
+const assertExists = (path: Path) =>
+    exists(path)
+        .chain(yes => yes ? pure(path) : raise(pathNotExistsErr(path)));
 
-const compileModule = (path: string) => {
+const assertDirectory = (path: Path) =>
+    isDirectory(path)
+        .chain(yes => yes ?
+            pure(path) :
+            raise(pathNotDirErr(path)));
 
-    let routes = `${path}/routes`;
-    let conf = `${path}/conf`;
+const pathNotExistsErr = (path: Path) =>
+    new Error(`The path ${path} does not exist!`);
 
-    return someIsFile([conf, routes])
-        .then(e => e.cata<Promise<Either<string, string>>>(
-            () => Promise.resolve(Either.left<string, string>('')),
-            () => routeFile(routes).then(confFile(conf)).then((s: string) => Either.right<string, string>(s))));
+const pathNotDirErr = (path: Path) =>
+    new Error(`The path ${path} is not a directory!`);
+
+export const getTDCFiles = (path: Path): Future<ParsedFiles> =>
+    <Future<ParsedFiles>>parallel<RCLFile | JCONFile>([
+        confFile(path),
+        routeFile(path)
+    ]);
+
+const confFile = (path: Path): Future<JCONFile> =>
+    getParsedFile(`${path}/${FILE_CONF}`, jcon.parse)
+
+const routeFile = (path: Path): Future<RCLFile> =>
+    getParsedFile(`${path}/${FILE_ROUTE}`, rcl.parse)
+
+const getParsedFile = <A>(path: Path, parser: Parser<A>): Future<A> =>
+    exists(path)
+        .chain(yes => yes ? readTextFile(path) : pure(''))
+        .chain(parser)
+
+const compile = (path: Path) => ([conf, routes]: ParsedFiles)
+    : Future<TypeScript> =>
+    rcl
+        .file2TS(context(path), routes)
+        .chain(compileConf(conf, context(path)))
+        .map(combine(context(path), conf, routes));
+
+const compileConf = (conf: JCONFile, ctx: Context) => (rts: TypeScript) =>
+    jcon.file2TS(ctx, addCreate(addRoutes(conf, rts)));
+
+const addRoutes = (f: JCONFile, routes: string): JCONFile => {
+
+    let loc = {};
+
+    let path = [
+        new jconAst.Identifier('app', loc),
+        new jconAst.Identifier('routes', loc)
+    ];
+
+    let prop = new jconAst.Property(path,
+        new jconAst.ArrowFunction(routes, loc), loc);
+
+    f.directives.push(prop);
+
+    return f;
 
 }
 
-const printError = (e: Error) =>
-    console.error(e.stack ? e.stack : e);
+const addCreate = (f: JCONFile): JCONFile => {
 
-const _readdirs = (path: string) => (e: Either<boolean, boolean>): Promise<Either<any, string>> =>
-    e.cata(() => Promise.resolve(Either.left<string, string>('')), () => readdir(path).then(_recurse(path)));
+    let loc = {};
 
-const _recurse = (path: string) => (list: string[]): Promise<Either<any, string>> =>
-    Promise
-        .all(list.map((p: string) => execute(resolve(path, p))))
-        .then(() => compileModule(path)).then(_writeModule(path));
+    let path = [
 
-const _writeModule = (path: string) => (e: Either<any, string>) =>
-    e.cata(() => Promise.resolve(''), (txt: string) => writeFile(`${path}/index.ts`, txt));
+        new jconAst.Identifier('create', loc),
 
-const _writeStart = (path: string) => (txt: string) =>
-    writeFile(`${path}/index.ts`, txt)
-        .then(() => writeFile(`${path}/start.ts`, startTemplate()));
+    ];
+
+    let prop = new jconAst.Property(path,
+        new jconAst.ArrowFunction('(a:App) => new Module(a)', loc), loc);
+
+    f.directives.unshift(prop);
+
+    return f;
+
+}
+
+const combine = (ctx: Context, conf: JCONFile, routes: RCLFile) =>
+    (cts: TypeScript): TypeScript => [
+
+        jcon.file2Imports(ctx, conf),
+        rcl.imports2TS(rcl.file2Imports(routes)),
+        `import {Template} from '@quenk/tendril/lib/app/module/template';`,
+        `import {Module} from '@quenk/tendril/lib/app/module';`,
+        `import {App} from '@quenk/tendril/lib/app';`,
+        ctx.EOL,
+        `export const template: Template = ${ctx.EOL} ${cts}`
+
+    ].join(EOL);
 
 /**
- * execute the program.
+ * execR executes recursively on a path.
+ *
+ * All directories under the given path will be checked for
+ * TDC files, if any are found they will be turned into modules.
  */
-const execute = (path: string) =>
-    Either
-        .fromBoolean(args['--modules'])
-        .map(() =>
-            isDirectory(path)
-                .then(_readdirs(path)))
-        .orRight(() =>
-            compileModule(path)
-                .then(e => e.cata(() => Promise.resolve(), _writeStart(path))))
-        .takeRight();
+export const execR = (path: Path, opts: Options): Future<void[]> =>
+    listDA(path)
+        .chain(paths => parallel(paths.map(recurse(opts))));
 
-const args = docopt.docopt<Arguments>(`
+const recurse = (opts: Options) => (path: Path): Future<void> =>
+    isIgnored(opts, path) ?
+        pure(undefined) :
+        isModule(path)
+            .chain(yes => yes ?
+                getTDCFiles(path)
+                    .chain(compile(path))
+                    .chain(ts => writeIndexFile(path, ts)) :
+                pure(undefined))
+            .chain(() => listDA(path))
+            .chain(paths => parallel(paths.map(recurse(opts))))
+            .map(noop);
 
-Usage:
-  tendril [options] <module>
+const isIgnored = (opts: Options, path: Path): boolean =>
+    opts.ignore.reduce((p, c) => (p === true) ? p : c.test(path), false);
 
-Options:
-  -h --help          Show this screen.
-  --modules          Compile modules only.
-  --version          Show version.
-`, {
-        version: require('../package.json').version
-    });
+/**
+ * writeIndexFile writes out compile typescript to 
+ * the index file of a path.
+ */
+export const writeIndexFile = (path: Path, ts: TypeScript) =>
+    writeTextFile(`${path}/${FILE_INDEX}`, ts);
 
-execute(resolve(process.cwd(), args['<module>']))
-    .catch(printError);
-
+/**
+ * writeStartFile writes out the start script to a destination/
+ */
+export const writeStartFile = (path: Path): Future<void> =>
+    writeTextFile(`${path}/${FILE_START}`, startTemplate());
