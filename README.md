@@ -1,5 +1,5 @@
 
-# Tendril Compiler
+# Tendril Directory Compiler
 
 CLI tool for building `@quenk/tendril` projects.
 
