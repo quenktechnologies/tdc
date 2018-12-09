@@ -162,7 +162,7 @@ const member2TS = (m: ast.Member) =>
         value2TS(m.member));
 
 const envVar2Ts = (n: ast.EnvVar) =>
-    `process.env['${value2TS(n.key)}']`;
+    `(<string>process.env['${value2TS(n.key)}'])`;
 
 const list2TS = (l: ast.List) =>
     `[${l.elements.map(value2TS).join(',')}]`;
