@@ -175,7 +175,7 @@ const dict2TS = (d: ast.Dict) => {
 }
 
 const literal2TS = (n: ast.Literal) =>
-    (n instanceof ast.StringLiteral) ? `'\`${n.value}\`` : n.value;
+    (n instanceof ast.StringLiteral) ? `\`${n.value}\`` : n.value;
 
 const arrowFunction2TS = (n: ast.ArrowFunction) =>
     n.body;

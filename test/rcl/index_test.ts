@@ -61,7 +61,7 @@ const tests = {
     `
 };
 
-describe('jcon', () => {
+describe('rcl', () => {
 
     describe('compile', () => {
 
