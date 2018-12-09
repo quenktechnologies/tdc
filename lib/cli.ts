@@ -9,7 +9,7 @@ import {
     isDirectory,
     isFile,
     readTextFile,
-    listDA,
+    listDirsAbs,
     writeTextFile
 } from '@quenk/noni/lib/io/file';
 import { Future, pure, raise, parallel } from '@quenk/noni/lib/control/monad/future';
@@ -224,7 +224,7 @@ const combine = (ctx: Context, conf: JCONFile, routes: RCLFile) =>
  * TDC files, if any are found they will be turned into modules.
  */
 export const execR = (path: Path, opts: Options): Future<void[]> =>
-    listDA(path)
+    listDirsAbs(path)
         .chain(paths => parallel(paths.map(recurse(opts))));
 
 const recurse = (opts: Options) => (path: Path): Future<void> =>
@@ -236,7 +236,7 @@ const recurse = (opts: Options) => (path: Path): Future<void> =>
                     .chain(compile(path))
                     .chain(ts => writeIndexFile(path, ts)) :
                 pure(undefined))
-            .chain(() => listDA(path))
+            .chain(() => listDirsAbs(path))
             .chain(paths => parallel(paths.map(recurse(opts))))
             .map(noop);
 
