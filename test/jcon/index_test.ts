@@ -42,7 +42,7 @@ const makeTest = (test, index) => {
         compile(test, newContext(loader))
             .fork(e => { throw e; },
                 txt => compare(txt,
-                    fs.readFileSync(`${EXPECTATIONS}/${file}.json`, {
+                    fs.readFileSync(`${EXPECTATIONS}/${file}.typescript`, {
                         encoding: 'utf8'
                     })));
 

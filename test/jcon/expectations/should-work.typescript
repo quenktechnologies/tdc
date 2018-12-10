@@ -5,8 +5,9 @@ import * as os from 'os';
 import * as http from 'http'; 
 import * as trap from 'trap'; 
 import {Template} from '@quenk/tendril/lib/app/module/template';
+import {Context} from '@quenk/tendril/lib/app/state/context';
 
- export const template: Template = 
+ export const template: Template<Context,App> = 
  {'modules': [path.default,os.default,http.default],
 'submodules': [],
 'name': {'title': `Mr.`,
@@ -14,7 +15,7 @@ import {Template} from '@quenk/tendril/lib/app/module/template';
 'first': `F`,
 'last': `L`},
 'trapN': someModule.trap,
-'id': process.env['ID'],
+'id': (<string>process.env['ID']),
 'app': {'connections': {'config': { main: { connector: connector.connect },
 backup: { connector: connector.backup(1,2,3) } }}},
 'trap': trap.default()}
