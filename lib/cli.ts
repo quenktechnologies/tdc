@@ -249,7 +249,7 @@ const isIgnored = (opts: Options, path: Path): boolean =>
  * the index file of a path.
  */
 export const writeIndexFile = (path: Path, ts: TypeScript) =>
-    writeTextFile(`${path} /${FILE_INDEX}`, ts);
+    writeTextFile(`${path}/${FILE_INDEX}`, ts);
 
 /**
  * writeStartFile writes out the start script to a destination/
