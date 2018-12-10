@@ -211,9 +211,10 @@ const combine = (ctx: Context, conf: JCONFile, routes: RCLFile) =>
         rcl.imports2TS(rcl.file2Imports(routes)),
         `import {Template} from '@quenk/tendril/lib/app/module/template';`,
         `import {Module} from '@quenk/tendril/lib/app/module';`,
-        `import {App} from '@quenk/tendril/lib/app';`,
+        `import {Context} from '@quenk/tendril/lib/app/state/context';`,
+        `import {App} from '@quenk/tendril/lib/app'; `,
         ctx.EOL,
-        `export const template: Template = ${ctx.EOL} ${cts}`
+        `export const template: Template<Context, App> = ${ctx.EOL} ${cts}`
 
     ].join(EOL);
 
@@ -248,7 +249,7 @@ const isIgnored = (opts: Options, path: Path): boolean =>
  * the index file of a path.
  */
 export const writeIndexFile = (path: Path, ts: TypeScript) =>
-    writeTextFile(`${path}/${FILE_INDEX}`, ts);
+    writeTextFile(`${path} /${FILE_INDEX}`, ts);
 
 /**
  * writeStartFile writes out the start script to a destination/
