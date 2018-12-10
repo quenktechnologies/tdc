@@ -1,6 +1,6 @@
 {
   "name": "@quenk/tdc",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "CLI tool for building tendril projects.",
   "main": "index.js",
   "bin": {
@@ -9,7 +9,10 @@
   "scripts": {
     "test": "./node_modules/.bin/mocha --opts mocha.opts $(find -name *_test.ts)"
   },
-  "files": ["bin", "lib"],
+  "files": [
+    "bin",
+    "lib"
+  ],
   "author": "Quenk Technologies Limited <info@quenk.com> (http://quenk.com)",
   "license": "Apache-2.0",
   "dependencies": {
