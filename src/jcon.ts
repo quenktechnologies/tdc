@@ -185,9 +185,8 @@ const wrapOutput = (ctx: Context, f: ast.File) => (ts: TypeScript) => {
     let i = file2Imports(ctx, f);
     return pure(`${i}${ctx.EOL}import {Template} from ` +
       `'${ctx.tendril}/lib/app/module/template';` +
-      `${ctx.EOL}import {Context} from '${ctx.tendril}/lib/app/state/context';`+
         `${ctx.EOL}${ctx.EOL} ` +
-      `export const template: Template<Context,App> = ${ctx.EOL} ${ts}`);
+      `export const template: Template = ${ctx.EOL} ${ts}`);
 
 }
 
