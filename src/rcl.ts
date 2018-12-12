@@ -128,8 +128,12 @@ const wrapInFunc = (ts: TypeScript): TypeScript =>
 
 const route2TS = (r: ast.Route): TypeScript =>
     `_m.install(${method2TS(r.method)},${pattern2TS(r.pattern)},` +
-    `[${r.filters.map(filter2TS).join(',')}].concat(` +
-    `[${r.view ? ',' + view2TS(r.view) : ''}]));${EOL}`;
+    (r.view ?
+      `[${filters2TS(r.filters)},${view2TS(r.view)}]);${EOL}` :
+      `[${filters2TS(r.filters)}]);${EOL}`);
+
+const filters2TS = (filters: ast.Filter[]): TypeScript =>
+    filters.map(filter2TS).join(',');
 
 const method2TS = (m: ast.Method): TypeScript =>
     `'${m.toLowerCase()}'`;
@@ -138,13 +142,13 @@ const pattern2TS = (p: ast.Pattern): TypeScript =>
     `'${p.value}'`;
 
 const view2TS = (view?: ast.View) => (view) ?
-    `()=>pure(show(${literal2TS(view.view)}, ` +
+    `()=> pure(show(${literal2TS(view.view)}, ` +
     `${dict2TS(view.context)}))` :
     '';
 
 const filter2TS = (f: ast.Filter): TypeScript =>
-    `${identifier2TS(f.value)}` +
-    `${f.invoked ? '(' + f.args.map(value2TS).join(',') + ')' : ''}`;
+    `${identifier2TS(f.value)} ` +
+    `${f.invoked ? '(' + f.args.map(value2TS).join(',') + ')' : ''} `;
 
 const value2TS = (n: ast.Value): TypeScript => <TypeScript>match(n)
     .caseOf(ast.List, list2TS)
@@ -162,8 +166,8 @@ const list2TS = (l: ast.List): TypeScript =>
 
 const dict2TS = (d: ast.Dict): TypeScript => {
 
-    let props = d.properties.map(p => `${value2TS(p.key)}: ${value2TS(p.value)}`);
-    return `{ ${props.join(',\n')} }`;
+    let props = d.properties.map(p => `${value2TS(p.key)}: ${value2TS(p.value)} `);
+    return `{ ${props.join(',\n')} } `;
 
 }
 

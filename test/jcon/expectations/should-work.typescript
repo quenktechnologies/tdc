@@ -5,9 +5,8 @@ import * as os from 'os';
 import * as http from 'http'; 
 import * as trap from 'trap'; 
 import {Template} from '@quenk/tendril/lib/app/module/template';
-import {Context} from '@quenk/tendril/lib/app/state/context';
 
- export const template: Template<Context,App> = 
+ export const template: Template = 
  {'modules': [path.default,os.default,http.default],
 'submodules': [],
 'name': {'title': `Mr.`,

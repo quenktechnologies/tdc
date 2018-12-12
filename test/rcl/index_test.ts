@@ -58,6 +58,7 @@ const tests = {
 
   -- This should work.
   DELETE /:id check delete
+  GET / "index.html"
     `
 };
 
