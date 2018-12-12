@@ -1,8 +1,8 @@
 (_m:Module) => {
 
 _m.install('put','/:id',[check  ,update  ]);
-_m.install('get','/',[,()=> pure(show(`index`, {  } ))]);
+_m.install('get','/',[_m.show(`index`, {  } )]);
 _m.install('delete','/:id',[check  ,delete  ]);
-_m.install('get','/',[,()=> pure(show(`index.html`, {  } ))]);
+_m.install('get','/',[_m.show(`index.html`, {  } )]);
 
 }

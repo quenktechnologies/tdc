@@ -129,7 +129,8 @@ const wrapInFunc = (ts: TypeScript): TypeScript =>
 const route2TS = (r: ast.Route): TypeScript =>
     `_m.install(${method2TS(r.method)},${pattern2TS(r.pattern)},` +
     (r.view ?
-        `[${filters2TS(r.filters)},${view2TS(r.view)}]);${EOL}` :
+        `[${r.filters.length > 0 ? filters2TS(r.filters) + ',' : ''}` +
+        `${view2TS(r.view)}]);${EOL}` :
         `[${filters2TS(r.filters)}]);${EOL}`);
 
 const filters2TS = (filters: ast.Filter[]): TypeScript =>
@@ -142,8 +143,8 @@ const pattern2TS = (p: ast.Pattern): TypeScript =>
     `'${p.value}'`;
 
 const view2TS = (view?: ast.View) => (view) ?
-    `()=> _pure(_show(${literal2TS(view.view)}, ` +
-    `${dict2TS(view.context)}))` :
+    `_m.show(${literal2TS(view.view)}, ` +
+    `${dict2TS(view.context)})` :
     '';
 
 const filter2TS = (f: ast.Filter): TypeScript =>

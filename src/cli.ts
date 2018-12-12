@@ -209,10 +209,8 @@ const combine = (ctx: Context, conf: JCONFile, routes: RCLFile) =>
 
         jcon.file2Imports(ctx, conf),
         rcl.imports2TS(rcl.file2Imports(routes)),
-        `import {pure as _pure} from '@quenk/noni/lib/control/monad/future'`,
         `import {Template} from '@quenk/tendril/lib/app/module/template';`,
         `import {Module} from '@quenk/tendril/lib/app/module';`,
-        `import {show as _show} from '@quenk/tendril/lib/app/show';`,
         `import {App} from '@quenk/tendril/lib/app'; `,
         ctx.EOL,
         `export const template: Template = ${ctx.EOL} ${cts}`
