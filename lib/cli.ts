@@ -91,7 +91,7 @@ export const args2Opts = (args: Arguments): Options => ({
 export const startTemplate = () =>
     `import {App} from '@quenk/tendril/lib/app';${EOL}` +
     `import {template} from './';${EOL}${EOL}` +
-    `let app = new App(template, {});${EOL}` +
+    `let app = new App(template, template.app && template.app.system || {});${EOL}` +
     `app.start().fork(console.error, ()=>{});`;
 
 /**
