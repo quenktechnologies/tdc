@@ -76,7 +76,7 @@ const addMemberImport = (p: Imports) => ({ members, module }: ast.MemberImport) 
     merge(p, { [module.value]: members.map(m => m.value) });
 
 const addQualifiedImport = (p: Imports) => ({ module, id }: ast.QualifiedImport) =>
-    merge(p, { [module.value]: id });
+    merge(p, { [module.value]: id.value });
 
 /**
  * imports2TS converts a map of imports to 
