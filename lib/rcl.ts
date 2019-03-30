@@ -184,7 +184,7 @@ const identifier2TS = (i: ast.Identifier): TypeScript => <TypeScript>match(i)
     .end();
 
 const qualifiedIdentifier2TS = (n: ast.QualifiedIdentifier) =>
-    n.path.map(unqualifiedIdentifier2TS).join(',');
+    n.path.map(unqualifiedIdentifier2TS).join('.');
 
 const unqualifiedIdentifier2TS = (n: ast.UnqualifiedIdentifier) =>
     n.value;
