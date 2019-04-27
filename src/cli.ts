@@ -92,7 +92,7 @@ export const startTemplate = () =>
     `import {App} from '@quenk/tendril/lib/app';${EOL}` +
     `import {template} from './';${EOL}${EOL}` +
     `let app = new App(template, template.app && template.app.system || {});${EOL}` +
-    `app.start().fork(console.error, ()=>{});`;
+    `app.start().fork(e => { throw e; }, ()=>{});`;
 
 /**
  * isModule test.
