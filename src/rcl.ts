@@ -133,7 +133,7 @@ const route2TS = (r: ast.Route): TypeScript =>
         `${view2TS(r.view)}]);${EOL}` :
         `[${filters2TS(r.filters)}]);${EOL}`);
 
-const filters2TS = (filters: ast.Filter[]): TypeScript =>
+const filters2TS = (filters: ast.FilterExpression[]): TypeScript =>
     filters.map(filter2TS).join(',');
 
 const method2TS = (m: ast.Method): TypeScript =>
@@ -147,9 +147,15 @@ const view2TS = (view?: ast.View) => (view) ?
     `${dict2TS(view.context)})` :
     '';
 
-const filter2TS = (f: ast.Filter): TypeScript =>
-    `${identifier2TS(f.value)} ` +
-    `${f.invoked ? '(' + f.args.map(value2TS).join(',') + ')' : ''} `;
+const filter2TS = (f: ast.FilterExpression): TypeScript => {
+
+    if (f instanceof ast.Spread)
+        return `...${filter2TS(f.filter)}`
+    else
+        return `${identifier2TS(f.value)} ` +
+            `${f.invoked ? '(' + f.args.map(value2TS).join(',') + ')' : ''} `;
+
+}
 
 const value2TS = (n: ast.Value): TypeScript => <TypeScript>match(n)
     .caseOf(ast.List, list2TS)
