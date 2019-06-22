@@ -212,7 +212,7 @@ const addCreate = (f: JCONFile): JCONFile => {
 
     let prop = new jconAst.Property(path,
         new jconAst.ArrowFunction(`${EOL}//@ts-ignore: 6133 ${EOL}` +
-            `(app:App) => new Module(app)`, loc), loc);
+            `(_app:App) => new Module(_app)`, loc), loc);
 
     f.directives.unshift(prop);
 
@@ -229,7 +229,7 @@ const combine = (ctx: Context, conf: JCONFile, routes: RCLFile, opts: Options) =
         `import {Module} from '@quenk/tendril/lib/app/module';`,
         getMainImport(opts),
         ctx.EOL,
-        `export const template = (app:App) : Template<App> =>` +
+        `export const template = (_app:App) : Template<App> =>` +
         `(${ctx.EOL} ${cts})`
 
     ].join(EOL);
