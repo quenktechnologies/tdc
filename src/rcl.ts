@@ -115,10 +115,10 @@ const mergeRs = (f: ast.File) => (list: ast.File[]): ast.File =>
     }, f);
 
 const fileRoutes2TS = (f: ast.File) =>
-    f
+    `return [` + f
         .routes
         .reduce(onlyRoutes2TS, [])
-        .join('');
+        .join(',') + `]`;
 
 const onlyRoutes2TS = (p: TypeScript[], c: ast.Routes) =>
     (c instanceof ast.Route) ? p.concat(route2TS(c)) : p;
@@ -127,11 +127,12 @@ const wrapInFunc = (ts: TypeScript): TypeScript =>
     `(_m:Module) => {${EOL}${EOL}${ts}${EOL}}`;
 
 const route2TS = (r: ast.Route): TypeScript =>
-    `_m.install(${method2TS(r.method)},${pattern2TS(r.pattern)},` +
-    (r.view ?
+    `{ method: ${method2TS(r.method)},` +
+    `path: ${pattern2TS(r.pattern)},` +
+    `filters: ` + (r.view ?
         `[${r.filters.length > 0 ? filters2TS(r.filters) + ',' : ''}` +
         `${view2TS(r.view)}]);${EOL}` :
-        `[${filters2TS(r.filters)}]);${EOL}`);
+        `[${filters2TS(r.filters)}]}${EOL}`);
 
 const filters2TS = (filters: ast.FilterExpression[]): TypeScript =>
     filters.map(filter2TS).join(',');
