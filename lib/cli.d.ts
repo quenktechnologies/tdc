@@ -5,17 +5,20 @@ export declare const FILE_CONF = "conf";
 export declare const FILE_ROUTE = "routes";
 export declare const FILE_INDEX = "index.ts";
 export declare const FILE_START = "start.ts";
+export declare const DEFAULT_MAIN = "@quenk/tendrill/lib/app#App";
 export interface Arguments {
     '<module>': string;
     '--no-recurse': boolean;
     '--no-start': boolean;
     '--ignore': string[];
+    '--main': string;
 }
 export interface Options {
     module: string;
     noRecurse: boolean;
     noStart: boolean;
     ignore: RegExp[];
+    main: string;
 }
 /**
  * args2Opts function.
@@ -24,7 +27,7 @@ export declare const args2Opts: (args: Arguments) => Options;
 /**
  * startTemplate provides the contant of the start.js file.
  */
-export declare const startTemplate: () => string;
+export declare const startTemplate: (opts: Options) => string;
 /**
  * isModule test.
  *
@@ -51,4 +54,4 @@ export declare const writeIndexFile: (path: string, ts: string) => Future<void>;
 /**
  * writeStartFile writes out the start script to a destination/
  */
-export declare const writeStartFile: (path: string) => Future<void>;
+export declare const writeStartFile: (path: string, opts: Options) => Future<void>;

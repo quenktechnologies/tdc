@@ -19,6 +19,7 @@ export const FILE_CONF = 'conf';
 export const FILE_ROUTE = 'routes';
 export const FILE_INDEX = 'index.ts';
 export const FILE_START = 'start.ts';
+export const DEFAULT_MAIN = '@quenk/tendrill/lib/app#App';
 
 type ParsedFiles = [JCONFile, RCLFile];
 
@@ -40,7 +41,9 @@ export interface Arguments {
 
     '--no-start': boolean,
 
-    '--ignore': string[]
+    '--ignore': string[],
+
+    '--main': string
 
 }
 
@@ -52,7 +55,9 @@ export interface Options {
 
     noStart: boolean,
 
-    ignore: RegExp[]
+    ignore: RegExp[],
+
+    main: string
 
 }
 
@@ -81,18 +86,28 @@ export const args2Opts = (args: Arguments): Options => ({
 
     noStart: args['--no-start'],
 
-    ignore: ['node_modules'].concat(args['--ignore']).map(p => new RegExp(p))
+    ignore: ['node_modules'].concat(args['--ignore']).map(p => new RegExp(p)),
+
+    main: (args['--main'] != null) ? args['--main'] : DEFAULT_MAIN
 
 })
 
 /**
  * startTemplate provides the contant of the start.js file.
  */
-export const startTemplate = () =>
-    `import {App} from '@quenk/tendril/lib/app';${EOL}` +
+export const startTemplate = (opts: Options) =>
+    getMainImport(opts) +
     `import {template} from './';${EOL}${EOL}` +
     `let app = new App(template);${EOL}` +
     `app.start().fork(e => { throw e; }, ()=>{});`;
+
+const getMainImport = (opts: Options) => {
+
+    let [mod, exp] = opts.main.split('#');
+
+    return `import {${exp} as App} from '${mod}';${EOL}`;
+
+}
 
 /**
  * isModule test.
@@ -119,10 +134,10 @@ export const exec = (path: Path, opts: Options): Future<void> =>
     assertExists(path)
         .chain(() => assertDirectory(path))
         .chain(() => getTDCFiles(path))
-        .chain(compile(path))
+        .chain(compile(path, opts))
         .chain(ts => writeIndexFile(path, ts))
         .chain(() => opts.noRecurse ? pure(undefined) : execR(path, opts))
-        .chain(() => opts.noStart ? pure(undefined) : writeStartFile(path));
+        .chain(() => opts.noStart ? pure(undefined) : writeStartFile(path, opts));
 
 const assertExists = (path: Path) =>
     exists(path)
@@ -157,12 +172,12 @@ const getParsedFile = <A>(path: Path, parser: Parser<A>): Future<A> =>
         .chain(yes => yes ? readTextFile(path) : pure(''))
         .chain(parser)
 
-const compile = (path: Path) => ([conf, routes]: ParsedFiles)
+const compile = (path: Path, opts: Options) => ([conf, routes]: ParsedFiles)
     : Future<TypeScript> =>
     rcl
         .file2TS(context(path), routes)
         .chain(compileConf(conf, context(path)))
-        .map(combine(context(path), conf, routes));
+        .map(combine(context(path), conf, routes, opts));
 
 const compileConf = (conf: JCONFile, ctx: Context) => (rts: TypeScript) =>
     jcon.file2TS(ctx, addCreate(addRoutes(conf, rts)));
@@ -204,16 +219,16 @@ const addCreate = (f: JCONFile): JCONFile => {
 
 }
 
-const combine = (ctx: Context, conf: JCONFile, routes: RCLFile) =>
+const combine = (ctx: Context, conf: JCONFile, routes: RCLFile, opts: Options) =>
     (cts: TypeScript): TypeScript => [
 
         jcon.file2Imports(ctx, conf),
         rcl.imports2TS(rcl.file2Imports(routes)),
         `import {Template} from '@quenk/tendril/lib/app/module/template';`,
         `import {Module} from '@quenk/tendril/lib/app/module';`,
-        `import {App} from '@quenk/tendril/lib/app'; `,
+        getMainImport(opts),
         ctx.EOL,
-        `export const template = <S extends App>(app:A) : Template<S> =>` +
+        `export const template = (app:App) : Template<App> =>` +
         `(${ctx.EOL} ${cts})`
 
     ].join(EOL);
@@ -234,7 +249,7 @@ const recurse = (opts: Options) => (path: Path): Future<void> =>
         isModule(path)
             .chain(yes => yes ?
                 getTDCFiles(path)
-                    .chain(compile(path))
+                    .chain(compile(path, opts))
                     .chain(ts => writeIndexFile(path, ts)) :
                 pure(undefined))
             .chain(() => listDirsAbs(path))
@@ -254,5 +269,5 @@ export const writeIndexFile = (path: Path, ts: TypeScript) =>
 /**
  * writeStartFile writes out the start script to a destination/
  */
-export const writeStartFile = (path: Path): Future<void> =>
-    writeTextFile(`${path}/${FILE_START}`, startTemplate());
+export const writeStartFile = (path: Path, opts: Options): Future<void> =>
+    writeTextFile(`${path}/${FILE_START}`, startTemplate(opts));

@@ -190,7 +190,7 @@ const wrapOutput = (ctx: Context, f: ast.File) => (ts: TypeScript) => {
     return pure(`${i}${ctx.EOL}import {Template} from ` +
         `'${ctx.tendril}/lib/app/module/template';` +
         `${ctx.EOL}${ctx.EOL} ` +
-        `export const template: Template = ${ctx.EOL} ${ts}`);
+        `export const template: Template<App> = ${ctx.EOL} ${ts}`);
 
 }
 
@@ -245,7 +245,6 @@ const notFile = (n: ast.Node) =>
  * compile some source text into TypeScript code.
  */
 export const compile = (src: string, ctx: Context): Future<TypeScript> =>
-    parse(src)
-        .chain(f => file2TS(ctx, f)
-            .chain(wrapOutput(ctx, f)));
+    parse(src).chain(f =>
+        file2TS(ctx, f).chain(wrapOutput(ctx, f)));
 
