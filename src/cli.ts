@@ -211,7 +211,8 @@ const addCreate = (f: JCONFile): JCONFile => {
     ];
 
     let prop = new jconAst.Property(path,
-        new jconAst.ArrowFunction('(a:App) => new Module(a)', loc), loc);
+        new jconAst.ArrowFunction(`${EOL}//@ts-ignore: 61333 ${EOL}` +
+            `(app:App) => new Module(app)`, loc), loc);
 
     f.directives.unshift(prop);
 
