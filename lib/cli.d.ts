@@ -5,7 +5,7 @@ export declare const FILE_CONF = "conf";
 export declare const FILE_ROUTE = "routes";
 export declare const FILE_INDEX = "index.ts";
 export declare const FILE_START = "start.ts";
-export declare const DEFAULT_MAIN = "@quenk/tendrill/lib/app#App";
+export declare const DEFAULT_MAIN = "@quenk/tendril/lib/app#App";
 export interface Arguments {
     '<module>': string;
     '--no-recurse': boolean;

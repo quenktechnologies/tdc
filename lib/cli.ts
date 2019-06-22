@@ -19,7 +19,7 @@ export const FILE_CONF = 'conf';
 export const FILE_ROUTE = 'routes';
 export const FILE_INDEX = 'index.ts';
 export const FILE_START = 'start.ts';
-export const DEFAULT_MAIN = '@quenk/tendrill/lib/app#App';
+export const DEFAULT_MAIN = '@quenk/tendril/lib/app#App';
 
 type ParsedFiles = [JCONFile, RCLFile];
 
