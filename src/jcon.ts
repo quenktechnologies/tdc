@@ -145,6 +145,7 @@ const makePotentials = (p: CandidateTypeScripts, c: ast.Directive)
  */
 export const value2TS = (n: ast.Value): string => <string>match(n)
     .caseOf(ast.Member, member2TS)
+    .caseOf(ast.Var, var2Ts)
     .caseOf(ast.EnvVar, envVar2Ts)
     .caseOf(ast.List, list2TS)
     .caseOf(ast.Dict, dict2TS)
@@ -160,6 +161,9 @@ const member2TS = (m: ast.Member) =>
     (m.invocation ?
         `${value2TS(m.member)}(${m.parameters.map(value2TS).join(',')})` :
         value2TS(m.member));
+
+const var2Ts = (n: ast.Var) =>
+    `${value2TS(n.key)}`;
 
 const envVar2Ts = (n: ast.EnvVar) =>
     `(<string>process.env['${value2TS(n.key)}'])`;
@@ -184,9 +188,9 @@ const wrapOutput = (ctx: Context, f: ast.File) => (ts: TypeScript) => {
 
     let i = file2Imports(ctx, f);
     return pure(`${i}${ctx.EOL}import {Template} from ` +
-      `'${ctx.tendril}/lib/app/module/template';` +
+        `'${ctx.tendril}/lib/app/module/template';` +
         `${ctx.EOL}${ctx.EOL} ` +
-      `export const template: Template = ${ctx.EOL} ${ts}`);
+        `export const template: Template = ${ctx.EOL} ${ts}`);
 
 }
 

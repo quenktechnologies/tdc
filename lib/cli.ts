@@ -91,7 +91,7 @@ export const args2Opts = (args: Arguments): Options => ({
 export const startTemplate = () =>
     `import {App} from '@quenk/tendril/lib/app';${EOL}` +
     `import {template} from './';${EOL}${EOL}` +
-    `let app = new App(template, template.app && template.app.system || {});${EOL}` +
+    `let app = new App(template);${EOL}` +
     `app.start().fork(e => { throw e; }, ()=>{});`;
 
 /**
@@ -213,7 +213,8 @@ const combine = (ctx: Context, conf: JCONFile, routes: RCLFile) =>
         `import {Module} from '@quenk/tendril/lib/app/module';`,
         `import {App} from '@quenk/tendril/lib/app'; `,
         ctx.EOL,
-        `export const template: Template = ${ctx.EOL} ${cts}`
+        `export const template = <S extends App>(app:A) : Template<S> =>` +
+        `(${ctx.EOL} ${cts})`
 
     ].join(EOL);
 
