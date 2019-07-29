@@ -163,10 +163,11 @@ const member2TS = (m: ast.Member) =>
         value2TS(m.member));
 
 const var2Ts = (n: ast.Var) =>
-    `${value2TS(n.key)}`;
+    n.filters.reduce((p, c) => `${literal2TS(c.name)}(${p})`, value2TS(n.key));
 
 const envVar2Ts = (n: ast.EnvVar) =>
-    `(<string>process.env['${value2TS(n.key)}'])`;
+    n.filters.reduce((p, c) => `${literal2TS(c.name)}(${p})`,
+        `(<string>process.env['${value2TS(n.key)}'])`);
 
 const list2TS = (l: ast.List) =>
     `[${l.elements.map(value2TS).join(',')}]`;
