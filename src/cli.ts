@@ -12,7 +12,7 @@ import {
     listDirsAbs,
     writeTextFile
 } from '@quenk/noni/lib/io/file';
-import { Future, pure, raise, parallel } from '@quenk/noni/lib/control/monad/future';
+import { Future, pure, raise, parallel, doFuture } from '@quenk/noni/lib/control/monad/future';
 import { noop } from '@quenk/noni/lib/data/function';
 
 export const FILE_CONF = 'conf';
@@ -26,8 +26,6 @@ type ParsedFiles = [JCONFile, RCLFile];
 type Parser<A> = (src: string) => Future<A>;
 
 type TypeScript = string;
-
-type Context = jcon.Context & rcl.Context;
 
 type JCONFile = jconAst.File;
 
@@ -110,44 +108,68 @@ const getMainImport = (opts: Options) => {
 }
 
 /**
- * isModule test.
+ * isModule tests whether a directory is a module or not.
  *
- * A directory is a module if it has a conf or routes file or both.
+ * A directory is a module if it has either a conf or routes file or both.
  */
 export const isModule = (path: Path): Future<boolean> =>
-    exists(path)
-        .chain(yes => yes ?
-            isDirectory(path)
-                .chain(yes => (!yes) ?
-                    pure(false) :
-                    parallel([
-                        isFile(`${path}/${FILE_CONF}`),
-                        isFile(`${path}/${FILE_ROUTE}`)
-                    ])
-                        .chain(yess => pure((yess.filter(y => y).length > 0)))) :
-            pure(false));
+    doFuture<boolean>(function*() {
+
+        let isfile = yield exists(path);
+
+        if (isfile) {
+
+            let isdir = yield isDirectory(path);
+
+            if (isdir) {
+
+                let targets = [
+                    isFile(`${path}/${FILE_CONF}`),
+                    isFile(`${path}/${FILE_ROUTE}`)
+                ];
+
+                let results: boolean[] = yield parallel(targets);
+
+                return pure(results.filter(y => y).length > 0);
+
+            }
+
+
+        }
+
+        return pure(false);
+
+    });
 
 /**
  * exec the program.
  */
 export const exec = (path: Path, opts: Options): Future<void> =>
-    assertExists(path)
-        .chain(() => assertDirectory(path))
-        .chain(() => getTDCFiles(path))
-        .chain(compile(path, opts))
-        .chain(ts => writeIndexFile(path, ts))
-        .chain(() => opts.noRecurse ? pure(undefined) : execR(path, opts))
-        .chain(() => opts.noStart ? pure(undefined) : writeStartFile(path, opts));
+    doFuture<void>(function*() {
 
-const assertExists = (path: Path) =>
-    exists(path)
-        .chain(yes => yes ? pure(path) : raise(pathNotExistsErr(path)));
+        let pathExists = yield exists(path);
 
-const assertDirectory = (path: Path) =>
-    isDirectory(path)
-        .chain(yes => yes ?
-            pure(path) :
-            raise(pathNotDirErr(path)));
+        if (!pathExists) yield raise<void>(pathNotExistsErr(path));
+
+        let isdir = yield isDirectory(path);
+
+        if (!isdir) yield raise<void>(pathNotDirErr(path));
+
+        let files = yield getTDCFiles(path);
+
+        let ts = yield compile(files, opts, path);
+
+        yield writeIndexFile(path, ts);
+
+        if (!opts.noRecurse)
+            yield execR(path, opts);
+
+        if (!opts.noStart)
+            yield writeStartFile(path, opts);
+
+        return pure(undefined);
+
+    });
 
 const pathNotExistsErr = (path: Path) =>
     new Error(`The path ${path} does not exist!`);
@@ -155,32 +177,52 @@ const pathNotExistsErr = (path: Path) =>
 const pathNotDirErr = (path: Path) =>
     new Error(`The path ${path} is not a directory!`);
 
+/**
+ * getFiles provides the parsed conf file and routes file.
+ *
+ * If they don't exist, an empty string is passed to the relevant parser.
+ */
 export const getTDCFiles = (path: Path): Future<ParsedFiles> =>
-    <Future<ParsedFiles>>parallel<RCLFile | JCONFile>([
-        confFile(path),
-        routeFile(path)
-    ]);
+    doFuture<ParsedFiles>(function*() {
 
-const confFile = (path: Path): Future<JCONFile> =>
-    getParsedFile(`${path}/${FILE_CONF}`, jcon.parse)
+        let conf = yield getParsedFile(`${path}/${FILE_CONF}`, jcon.parse);
 
-const routeFile = (path: Path): Future<RCLFile> =>
-    getParsedFile(`${path}/${FILE_ROUTE}`, rcl.parse)
+        let routes = yield getParsedFile(`${path}/${FILE_ROUTE}`, rcl.parse);
+
+        return pure(<ParsedFiles>[conf, routes]);
+
+    });
 
 const getParsedFile = <A>(path: Path, parser: Parser<A>): Future<A> =>
     exists(path)
         .chain(yes => yes ? readTextFile(path) : pure(''))
         .chain(parser)
 
-const compile = (path: Path, opts: Options) => ([conf, routes]: ParsedFiles)
-    : Future<TypeScript> =>
-    rcl
-        .file2TS(context(path), routes)
-        .chain(compileConf(conf, context(path)))
-        .map(combine(context(path), conf, routes, opts));
+const compile = ([conf, routes]: ParsedFiles, opts: Options, path: Path) =>
+    doFuture<TypeScript>(function*() {
 
-const compileConf = (conf: JCONFile, ctx: Context) => (rts: TypeScript) =>
-    jcon.file2TS(ctx, addCreate(addRoutes(conf, rts)));
+        let ctx = context(path);
+
+        let rclTS = yield rcl.file2TS(ctx, routes);
+
+        let jconTS = yield jcon.compile(ctx, addCreate(addRoutes(conf, rclTS)));
+
+        let finalTS = [
+
+            jcon.flattenImports(ctx, jcon.getAllImports(conf.directives)),
+            rcl.imports2TS(rcl.file2Imports(routes)),
+            `import {Template} from '@quenk/tendril/lib/app/module/template';`,
+            `import {Module} from '@quenk/tendril/lib/app/module';`,
+            getMainImport(opts),
+            ctx.EOL,
+            `export const template = (_app:App) : Template<App> =>` +
+            `(${ctx.EOL} ${jconTS})`
+
+        ].join(EOL);
+
+        return pure(finalTS);
+
+    });
 
 const addRoutes = (f: JCONFile, routes: string): JCONFile => {
 
@@ -192,7 +234,7 @@ const addRoutes = (f: JCONFile, routes: string): JCONFile => {
     ];
 
     let prop = new jconAst.Property(path,
-        new jconAst.ArrowFunction(routes, loc), loc);
+        new jconAst.Function(routes, loc), loc);
 
     f.directives.push(prop);
 
@@ -211,7 +253,7 @@ const addCreate = (f: JCONFile): JCONFile => {
     ];
 
     let prop = new jconAst.Property(path,
-        new jconAst.ArrowFunction(`${EOL}//@ts-ignore: 6133 ${EOL}` +
+        new jconAst.Function(`${EOL}//@ts-ignore: 6133 ${EOL}` +
             `(_app:App) => new Module(_app)`, loc), loc);
 
     f.directives.unshift(prop);
@@ -219,20 +261,6 @@ const addCreate = (f: JCONFile): JCONFile => {
     return f;
 
 }
-
-const combine = (ctx: Context, conf: JCONFile, routes: RCLFile, opts: Options) =>
-    (cts: TypeScript): TypeScript => [
-
-        jcon.file2Imports(ctx, conf),
-        rcl.imports2TS(rcl.file2Imports(routes)),
-        `import {Template} from '@quenk/tendril/lib/app/module/template';`,
-        `import {Module} from '@quenk/tendril/lib/app/module';`,
-        getMainImport(opts),
-        ctx.EOL,
-        `export const template = (_app:App) : Template<App> =>` +
-        `(${ctx.EOL} ${cts})`
-
-    ].join(EOL);
 
 /**
  * execR executes recursively on a path.
@@ -250,7 +278,7 @@ const recurse = (opts: Options) => (path: Path): Future<void> =>
         isModule(path)
             .chain(yes => yes ?
                 getTDCFiles(path)
-                    .chain(compile(path, opts))
+                    .chain(files => compile(files, opts, path))
                     .chain(ts => writeIndexFile(path, ts)) :
                 pure(undefined))
             .chain(() => listDirsAbs(path))
@@ -258,7 +286,9 @@ const recurse = (opts: Options) => (path: Path): Future<void> =>
             .map(noop);
 
 const isIgnored = (opts: Options, path: Path): boolean =>
-    opts.ignore.reduce((p, c) => (p === true) ? p : c.test(path), false);
+    opts.ignore.reduce((p, c) => (p === true) ?
+        p :
+        c.test(path), <boolean>false);
 
 /**
  * writeIndexFile writes out compile typescript to 

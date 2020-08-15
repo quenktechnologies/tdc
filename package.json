@@ -7,7 +7,7 @@
     "tdc": "./lib/main.js"
   },
   "scripts": {
-    "test": "./node_modules/.bin/mocha --opts mocha.opts $(find -name *_test.ts)"
+    "test": "./node_modules/.bin/mocha $(find -name *_test.ts)"
   },
   "files": [
     "bin",
@@ -16,18 +16,18 @@
   "author": "Quenk Technologies Limited <info@quenk.com> (http://quenk.com)",
   "license": "Apache-2.0",
   "dependencies": {
-    "@quenk/jcon": "^0.14.1",
-    "@quenk/noni": "^1.30.0",
+    "@quenk/jcon": "^0.14.5",
+    "@quenk/noni": "^1.40.1",
     "@quenk/rcl": "^0.9.0",
-    "docopt": "^0.6.2",
-    "property-seek": "^3.1.1"
+    "docopt": "^0.6.2"
   },
   "devDependencies": {
     "@quenk/must": "^1.0.4",
-    "@types/mocha": "^5.2.5",
-    "@types/node": "^10.12.12",
-    "mocha": "^5.2.0",
-    "ts-node": "^7.0.1",
-    "typescript": "^3.2.2"
+    "@quenk/test": "^2.2.4",
+    "@types/mocha": "^8.0.1",
+    "@types/node": "^14.0.27",
+    "mocha": "^8.1.1",
+    "ts-node": "^8.10.2",
+    "typescript": "^3.9.7"
   }
 }

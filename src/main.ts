@@ -23,8 +23,8 @@ Options:
                      in the format <module>#<export>.
   --version          Show version.
 `, {
-        version: require('../package.json').version
-    }));
+    version: require('../package.json').version
+}));
 
 const expand = (cwd: Path, path: Path) => isAbsolute(path) ?
     path :

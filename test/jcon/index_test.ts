@@ -1,20 +1,20 @@
 import * as fs from 'fs';
-import { must } from '@quenk/must';
+
+import { assert } from '@quenk/test/lib/assert';
 import { pure } from '@quenk/noni/lib/control/monad/future';
-import { compile, newContext } from '../../src/jcon';
+import { tests } from '@quenk/jcon/lib/test';
+
+import { parse, compile, newContext } from '../../src/jcon';
 
 const EXPECTATIONS = `${__dirname}/expectations`;
 
 const includes = {
 
-    a: `name.middle = "K" 
-     trapN = some-module#trap`,
+    'some path': `include "otherpath" name.title = "Mr."`,
 
-    b: `
-     include "c"
-     name.title = "Mr."`,
+    'otherpath': `include "lastpath" name.middle = "K" trapN = some-module#trap`,
 
-    c: `modules = [] submodules = []`
+    'lastpath': `modules = [] submodules = []`
 
 }
 
@@ -22,7 +22,7 @@ const loader = (path: string) =>
     pure(includes[path]);
 
 const compare = (tree: any, that: any) =>
-    must(tree).equate(that);
+    assert(tree).equate(that);
 
 const makeTest = (test, index) => {
 
@@ -30,7 +30,8 @@ const makeTest = (test, index) => {
 
     if (process.env.GENERATE) {
 
-        return compile(test, newContext(loader))
+        return parse(test)
+            .chain(f => compile(newContext(loader), f))
             .fork(e => { throw e; },
                 txt =>
                     fs.writeFileSync(`${EXPECTATIONS}/${file}.typescript`, txt));
@@ -39,7 +40,8 @@ const makeTest = (test, index) => {
 
     if (!test.skip) {
 
-        compile(test, newContext(loader))
+        return parse(test)
+            .chain(f => compile(newContext(loader), f))
             .fork(e => { throw e; },
                 txt => compare(txt,
                     fs.readFileSync(`${EXPECTATIONS}/${file}.typescript`, {
@@ -49,41 +51,6 @@ const makeTest = (test, index) => {
     }
 
 }
-
-const tests = {
-
-    'should work': `
-  include "a"
-  include "b"
-
-  -- Opening comment.
-  -- Following comment.
-   id = \${ID}
-   name.first = "F"
-   name.last = "L"
-
-   -- Nothing on this line should be parsed. [1,2,3]
-   -- For real
-   app.connections.config = {
-
-       main = {
-
-        connector = path/to/connector#connect
-
-       }
-
-       backup = {
-
-        connector = path/to/connector#backup(1, 2, 3)
-
-       }
-
-   }
-  modules = [path#default, os#default, http#default ]
-  trap = trap#default()
-  `
-
-};
 
 describe('jcon', () => {
 
@@ -109,4 +76,3 @@ describe('jcon', () => {
     });
 
 });
-
