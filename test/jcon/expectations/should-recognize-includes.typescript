@@ -1,0 +1,9 @@
+import * as someModule from 'some-module'; 
+import {Template} from @quenk/tendril/lib/app/module/template';
+
+export const template: Template<App> =
+{'modules': [],
+'submodules': [],
+'name': {'middle': `K`,
+'title': `Mr.`},
+'trapN': someModule.trap}

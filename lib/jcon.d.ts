@@ -1,26 +1,19 @@
 import * as ast from '@quenk/jcon/lib/ast';
 import { Future } from '@quenk/noni/lib/control/monad/future';
+import { Path } from '@quenk/noni/lib/io/file';
 /**
- * Text source.
+ * SourceText source.
  */
-export declare type Text = string;
+export declare type SourceText = string;
 /**
- * TypeScript output.
+ * Code output.
  */
-export declare type TypeScript = string;
+export declare type Code = string;
 /**
  * Loader loads the parsed contents of a JCON file
  * into memory.
  */
 export declare type Loader = (path: string) => Future<string>;
-/**
- * Parser turns a text string into a File node.
- */
-export declare type Parser = (src: Text) => Future<ast.File>;
-/**
- * CandidateTypeScriptT
- */
-export declare type CandidateTypeScript = TypeScript | CandidateTypeScripts;
 /**
  * Context the jcon file is complied in.
  */
@@ -31,10 +24,6 @@ export interface Context {
      * All paths are passed as encountered.
      */
     loader: Loader;
-    /**
-     * jcon parser configured for the Context.
-     */
-    jcon: Parser;
     /**
      * tendril import module path.
      */
@@ -51,33 +40,57 @@ export interface Imports {
     [key: string]: string;
 }
 /**
- * PotentialOutput
+ * CodeStruct holds the Code for the final output of compilation in a structure
+ * that preserves the nesting of the properties.
  */
-export interface CandidateTypeScripts {
-    [key: string]: CandidateTypeScript;
+export interface CodeStruct {
+    [key: string]: Code | CodeStruct;
 }
 /**
  * newContext constructor function.
  */
 export declare const newContext: (loader: Loader) => Context;
 /**
- * file2TS transforms a File node into TypeScript.
+ * parse jcon source text into an Abstract Syntax Tree (AST).
+ *
+ * The [[ast.File|File]] node is always the root node of the AST.
  */
-export declare const file2TS: (ctx: Context, f: ast.File) => Future<string>;
+export declare const parse: (src: SourceText) => Future<ast.File>;
 /**
- * value2TS transforms one of the Value nodes into its TypeScript
- * equivelant.
+ * compile some an AST into the TypeScript code.
  */
-export declare const value2TS: (n: ast.Value) => string;
+export declare const compile: (ctx: Context, file: ast.File) => Future<Code>;
 /**
- * file2Imports extracts a list of TypeScript imports from a File node.
+ * getAllDirectives provides the directives of a File (and all included files).
  */
-export declare const file2Imports: (ctx: Context, f: ast.File) => string;
+export declare const getAllDirectives: (ctx: Context, f: ast.File) => Future<ast.Directive[]>;
 /**
- * parse source text into a File node.
+ * parseJCONFile at the specified path.
+ *
+ * A [[ast.File]] node is returned on success.
  */
-export declare const parse: (src: string) => Future<ast.File>;
+export declare const parseJCONFile: (ctx: Context, path: Path) => Future<ast.File>;
 /**
- * compile some source text into TypeScript code.
+ * flattenCodeStruct converts a Record of Code strings into
+ * a single string representing the record in TypeScript output.
  */
-export declare const compile: (src: string, ctx: Context) => Future<string>;
+export declare const flattenCodeStruct: (ctx: Context, rec: CodeStruct) => Code;
+/**
+ * wrapDirectives in the import preamble and associated export statement.
+ *
+ * This function makes the generated TypeScript ready for use.
+ */
+export declare const wrapDirectives: (ctx: Context, dirs: ast.Directive[], code: Code) => Code;
+/**
+ * getAllImports provides a Record containing all the imports (via module
+ * pointer syntax) found in the list of directives provided.
+ */
+export declare const getAllImports: (dirs: ast.Directive[]) => Imports;
+/**
+ * flattenImports into a TypeScript string.
+ */
+export declare const flattenImports: (ctx: Context, i: Imports) => Code;
+/**
+ * value2TS transforms one of the valid value nodes into a TypeScript string.
+ */
+export declare const value2TS: (ctx: Context, n: ast.Value) => Code;

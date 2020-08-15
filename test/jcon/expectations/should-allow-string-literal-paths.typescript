@@ -1,0 +1,8 @@
+
+import {Template} from @quenk/tendril/lib/app/module/template';
+
+export const template: Template<App> =
+{'app': {'session': {'key': {'value': `a key`,
+'name': `key`,
+'enabled': true},
+'options': {'encryption': true}}}}

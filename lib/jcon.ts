@@ -1,44 +1,38 @@
 import * as ast from '@quenk/jcon/lib/ast';
+
 import { EOL } from 'os';
-import { set } from 'property-seek';
+
 import {
     Future,
     raise,
     pure,
-    parallel
+    sequential,
+    doFuture
 } from '@quenk/noni/lib/control/monad/future';
 import { merge, reduce } from '@quenk/noni/lib/data/record';
+import { set } from '@quenk/noni/lib/data/record/path';
 import { tail } from '@quenk/noni/lib/data/array';
 import { camelCase, uncapitalize } from '@quenk/noni/lib/data/string';
+import { isObject } from '@quenk/noni/lib/data/type';
 import { Path } from '@quenk/noni/lib/io/file';
 import { match } from '@quenk/noni/lib/control/match';
-import { parse as _parse, tree } from '@quenk/jcon';
+import { parse as _parse } from '@quenk/jcon';
 
 /**
- * Text source.
+ * SourceText source.
  */
-export type Text = string;
+export type SourceText = string;
 
 /**
- * TypeScript output.
+ * Code output.
  */
-export type TypeScript = string;
+export type Code = string;
 
 /**
  * Loader loads the parsed contents of a JCON file
  * into memory.
  */
 export type Loader = (path: string) => Future<string>;
-
-/**
- * Parser turns a text string into a File node.
- */
-export type Parser = (src: Text) => Future<ast.File>;
-
-/**
- * CandidateTypeScriptT
- */
-export type CandidateTypeScript = TypeScript | CandidateTypeScripts;
 
 /**
  * Context the jcon file is complied in.
@@ -51,11 +45,6 @@ export interface Context {
      * All paths are passed as encountered.
      */
     loader: Loader,
-
-    /**
-     * jcon parser configured for the Context.
-     */
-    jcon: Parser,
 
     /**
      * tendril import module path.
@@ -79,11 +68,12 @@ export interface Imports {
 }
 
 /**
- * PotentialOutput 
+ * CodeStruct holds the Code for the final output of compilation in a structure
+ * that preserves the nesting of the properties.
  */
-export interface CandidateTypeScripts {
+export interface CodeStruct {
 
-    [key: string]: CandidateTypeScript;
+    [key: string]: Code | CodeStruct
 
 }
 
@@ -100,152 +90,216 @@ export const newContext =
         });
 
 /**
- * file2TS transforms a File node into TypeScript.
+ * parse jcon source text into an Abstract Syntax Tree (AST).
+ *
+ * The [[ast.File|File]] node is always the root node of the AST.
  */
-export const file2TS = (ctx: Context, f: ast.File): Future<TypeScript> =>
-    (loadFileRec(ctx)(f)).map(compileDs(ctx));
+export const parse = (src: SourceText): Future<ast.File> => {
 
-const loadFileRec = (ctx: Context) => (f: ast.File): Future<ast.File> =>
-    parallel(f.includes.map(p => loadFile(ctx, p.path.value))).map(mergeDs(f));
+    let mfile = _parse(src);
 
-const loadFile = (ctx: Context, path: Path): Future<ast.File> =>
+    if (mfile.isLeft())
+        return onParseError(mfile.takeLeft());
+
+    return pure(<ast.File>mfile.takeRight());
+
+}
+
+const onParseError = (e: Error): Future<ast.File> => raise(
+    new Error(`An error occurred while parsing file the provided source ` +
+        `text: \n ${e.message}`));
+
+/**
+ * compile some an AST into the TypeScript code.
+ */
+export const compile = (ctx: Context, file: ast.File): Future<Code> =>
+    doFuture<Code>(function*() {
+
+        let dirs: ast.Directive[] = yield getAllDirectives(ctx, file);
+
+        // Filter out comments.
+        let props = <ast.Property[]>dirs.filter(d =>
+            (d instanceof ast.Property));
+
+        let code = dict2TS(ctx, new ast.Dict(props, {}));
+
+        return pure(wrapDirectives(ctx, dirs, code));
+
+    });
+
+const paths2TS = (paths: (ast.Identifier | ast.StringLiteral)[]) =>
+    paths.map(p => `[${p.value}]`).join('');
+/**
+ * getAllDirectives provides the directives of a File (and all included files).
+ */
+export const getAllDirectives =
+    (ctx: Context, f: ast.File): Future<ast.Directive[]> =>
+        doFuture(function*() {
+
+            let work = f.includes.map(i => doFuture(function*() {
+
+                let { path } = i;
+
+                let file = yield parseJCONFile(ctx, path.value);
+
+                let childDirectives = yield getAllDirectives(ctx, file);
+
+                return pure([...childDirectives, ...file.directives]);
+
+            }));
+
+            let results: ast.Directive[][] = yield sequential(work);
+
+            let flatResults =
+                results.reduce((p, c) => p.concat(c), <ast.Directive[]>[]);
+
+            return pure([...flatResults, ...f.directives]);
+
+        });
+
+/**
+ * parseJCONFile at the specified path.
+ *
+ * A [[ast.File]] node is returned on success.
+ */
+export const parseJCONFile = (ctx: Context, path: Path): Future<ast.File> =>
     ctx
         .loader(path)
-        .chain(ctx.jcon)
-        .chain(loadFileRec(ctx));
+        .chain(parse)
+        .catch(onParseFileError(path));
 
-const mergeDs = (f: ast.File) => (list: ast.File[]): ast.File =>
-    list.reduce((p: ast.File, c: ast.File) => {
-        p.directives = [...c.directives, ...p.directives];
+const onParseFileError = (path: Path) => (e: Error): Future<ast.File> => raise(
+    new Error(`An error occurred while parsing file at ` +
+        `"${path}":\n ${e.message}`));
+/**
+ * flattenCodeStruct converts a Record of Code strings into
+ * a single string representing the record in TypeScript output.
+ */
+export const flattenCodeStruct =
+    (ctx: Context, rec: CodeStruct): Code => {
+
+        let tokens = reduce(rec, [], (p, c, k) => {
+
+            let value = isObject(c) ? flattenCodeStruct(ctx, c) : c;
+
+            return p.concat(`'${k}': ${value}`);
+
+        });
+
+        return `{` + tokens.join(`,${ctx.EOL}`) + '}';
+
+    }
+
+/**
+ * wrapDirectives in the import preamble and associated export statement.
+ *
+ * This function makes the generated TypeScript ready for use.
+ */
+export const wrapDirectives =
+    (ctx: Context, dirs: ast.Directive[], code: Code): Code =>
+        [
+            flattenImports(ctx, getAllImports(dirs)),
+            `import {Template} from ${ctx.tendril}/lib/app/module/template';`,
+            ``,
+            `export const template: Template<App> =`,
+            code
+        ].join(ctx.EOL);
+
+/**
+ * getAllImports provides a Record containing all the imports (via module 
+ * pointer syntax) found in the list of directives provided.
+ */
+export const getAllImports = (dirs: ast.Directive[]): Imports =>
+    dirs.reduce((p, c) => {
+
+        if (c instanceof ast.Property) {
+
+            let { value } = c;
+
+            if (value instanceof ast.Member)
+                return addImports(p, value);
+            else if (value instanceof ast.List)
+                return addImportsInList(p, value);
+            else if (value instanceof ast.Dict)
+                return addImportsInDict(p, value);
+
+        }
+
         return p;
-    }, f);
 
-const compileDs = (ctx: Context) => (f: ast.File) =>
-    candidate2TS(ctx,
-        f
-            .directives
-            .reduce(makePotentials, {}));
+    }, <Imports>{});
 
-const candidate2TS = (ctx: Context, st: CandidateTypeScript)
-    : TypeScript => (typeof st === 'string') ?
-        st :
-        '{' + reduce(st, [], (p, c, k) =>
-            p.concat(`'${k}': ${candidate2TS(ctx, c)}`))
-            .join(`,${ctx.EOL}`)
-            .concat('}');
 
-const makePotentials = (p: CandidateTypeScripts, c: ast.Directive)
-    : CandidateTypeScripts => (c instanceof ast.Property) ?
-        set(c.path.map(i => i.value).join('.'), value2TS(c.value), p) :
-        p;
+const addImports = (rec: Imports, m: ast.Member) =>
+    set(normalizeId(tail(m.module.module.split('/'))), m.module.module, rec);
 
-/**
- * value2TS transforms one of the Value nodes into its TypeScript 
- * equivelant.
- */
-export const value2TS = (n: ast.Value): string => <string>match(n)
-    .caseOf(ast.Member, member2TS)
-    .caseOf(ast.Var, var2Ts)
-    .caseOf(ast.EnvVar, envVar2Ts)
-    .caseOf(ast.List, list2TS)
-    .caseOf(ast.Dict, dict2TS)
-    .caseOf(ast.StringLiteral, literal2TS)
-    .caseOf(ast.NumberLiteral, literal2TS)
-    .caseOf(ast.BooleanLiteral, literal2TS)
-    .caseOf(ast.Identifier, literal2TS)
-    .caseOf(ast.ArrowFunction, arrowFunction2TS)
-    .end();
+const addImportsInList = (rec: Imports, l: ast.List) =>
+    l.elements.reduce((p, c) => (c instanceof ast.Member) ?
+        addImports(p, c) : rec, rec);
 
-const member2TS = (m: ast.Member) =>
-    `${normalizeId(tail(m.module.module.split('/')))}.` +
-    (m.invocation ?
-        `${value2TS(m.member)}(${m.parameters.map(value2TS).join(',')})` :
-        value2TS(m.member));
-
-const var2Ts = (n: ast.Var) =>
-    n.filters.reduce((p, c) => `${literal2TS(c.name)}(${p})`, value2TS(n.key));
-
-const envVar2Ts = (n: ast.EnvVar) =>
-    n.filters.reduce((p, c) => `${literal2TS(c.name)}(${p})`,
-        `(<string>process.env['${value2TS(n.key)}'])`);
-
-const list2TS = (l: ast.List) =>
-    `[${l.elements.map(value2TS).join(',')}]`;
-
-const dict2TS = (d: ast.Dict) => {
-
-    let props = d.properties.map(p => `${value2TS(p.key)}: ${value2TS(p.value)}`);
-    return `{ ${props.join(',\n')} }`;
-
-}
-
-const literal2TS = (n: ast.Literal) =>
-    (n instanceof ast.StringLiteral) ? `\`${n.value}\`` : n.value;
-
-const arrowFunction2TS = (n: ast.ArrowFunction) =>
-    n.body;
-
-const wrapOutput = (ctx: Context, f: ast.File) => (ts: TypeScript) => {
-
-    let i = file2Imports(ctx, f);
-    return pure(`${i}${ctx.EOL}import {Template} from ` +
-        `'${ctx.tendril}/lib/app/module/template';` +
-        `${ctx.EOL}${ctx.EOL} ` +
-        `export const template: Template<App> = ${ctx.EOL} ${ts}`);
-
-}
-
-/**
- * file2Imports extracts a list of TypeScript imports from a File node.
- */
-export const file2Imports = (ctx: Context, f: ast.File): TypeScript =>
-    flattenImports(ctx, f
-        .directives
-        .reduce((p, c) => (c instanceof ast.Property) ?
-            value2Imports(ctx, p, c.value) :
-            p, {}));
-
-const value2Imports = (ctx: Context, p: Imports, c: ast.Value): Imports =>
-    <Imports>match(c)
-        .caseOf(ast.Member, member2Import(p))
-        .caseOf(ast.List, list2Import(ctx, p))
-        .caseOf(ast.Dict, dict2Import(ctx, p))
-        .orElse(() => p)
-        .end();
-
-const member2Import = (p: Imports) => (m: ast.Member) =>
-    set(normalizeId(tail(m.module.module.split('/'))), m.module.module, p);
-
-const list2Import = (ctx: Context, p: Imports) => (l: ast.List) =>
-    l.elements.reduce((p, c) => value2Imports(ctx, p, c), p);
-
-const dict2Import = (ctx: Context, i: Imports) => (d: ast.Dict) =>
-    d.properties.reduce((p, c) => value2Imports(ctx, p, c.value), i);
+const addImportsInDict = (rec: Imports, d: ast.Dict) =>
+    d.properties.reduce((rec, c) => (c.value instanceof ast.Member) ?
+        addImports(rec, c.value) : rec, rec);
 
 const normalizeId = (str: string): string =>
     uncapitalize(camelCase(str));
 
-const flattenImports = (ctx: Context, i: Imports): TypeScript =>
+/**
+ * flattenImports into a TypeScript string.
+ */
+export const flattenImports = (ctx: Context, i: Imports): Code =>
     reduce(i, [], (p, c, k) =>
         [...p, `import * as ${k} from '${c}'; `]).join(ctx.EOL);
 
 /**
- * parse source text into a File node.
+ * value2TS transforms one of the valid value nodes into a TypeScript string.
  */
-export const parse = (src: Text): Future<ast.File> =>
-    _parse(src, tree)
-        .map(n => (n instanceof ast.File) ? pure(n) : raise(notFile(n)))
-        .orRight(raise)
-        .map((f: Future<ast.File>) => f)
-        .takeRight();
+export const value2TS = (ctx: Context, n: ast.Value): Code => <Code>match(n)
+    .caseOf(ast.Member, n => member2TS(ctx, n))
+    .caseOf(ast.Var, n => var2TS(ctx, n))
+    .caseOf(ast.EnvVar, n => envVar2Ts(ctx, n))
+    .caseOf(ast.List, n => list2TS(ctx, n))
+    .caseOf(ast.Dict, n => dict2TS(ctx, n))
+    .caseOf(ast.StringLiteral, literal2TS)
+    .caseOf(ast.NumberLiteral, literal2TS)
+    .caseOf(ast.BooleanLiteral, literal2TS)
+    .caseOf(ast.Identifier, literal2TS)
+    .end();
 
-const notFile = (n: ast.Node) =>
-    new Error(`Expected a valid file got "${n.type}"!`);
+const member2TS = (ctx: Context, m: ast.Member) =>
+    `${normalizeId(tail(m.module.module.split('/')))}.` +
+    (m.invocation ?
+        `${value2TS(ctx, m.member)}` +
+        `(${m.parameters.map(p => value2TS(ctx, p)).join(',')})` :
+        value2TS(ctx, m.member));
 
-/**
- * compile some source text into TypeScript code.
- */
-export const compile = (src: string, ctx: Context): Future<TypeScript> =>
-    parse(src).chain(f =>
-        file2TS(ctx, f).chain(wrapOutput(ctx, f)));
+const var2TS = (ctx: Context, n: ast.Var) =>
+    n.filters.reduce((p, c) =>
+        `${literal2TS(c.name)}(${p})`, value2TS(ctx, n.key));
 
+const envVar2Ts = (ctx: Context, n: ast.EnvVar) =>
+    n.filters.reduce((p, c) => `${literal2TS(c.name)}(${p})`,
+        `(<string>process.env['${value2TS(ctx, n.key)}'])`);
+
+const list2TS = (ctx: Context, l: ast.List) =>
+    `[${l.elements.map(n => value2TS(ctx, n)).join(',')}]`;
+
+const dict2TS = (ctx: Context, d: ast.Dict) =>
+    flattenCodeStruct(ctx, structFromDict(ctx, d));
+
+const literal2TS = (n: ast.Literal) =>
+    (n instanceof ast.StringLiteral) ? `\`${n.value}\`` : n.value;
+
+const structFromDict =
+    (ctx: Context, src: ast.Dict): CodeStruct =>
+        src.properties.reduce((prev, prop) => {
+
+            let path = paths2TS(prop.path);
+
+            let value = (prop.value instanceof ast.Dict) ?
+                structFromDict(ctx, prop.value) :
+                value2TS(ctx, prop.value);
+
+            return set(path, value, <{ [key: string]: string }>prev);
+
+        }, <CodeStruct>{});

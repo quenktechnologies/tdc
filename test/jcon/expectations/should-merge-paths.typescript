@@ -1,0 +1,7 @@
+
+import {Template} from @quenk/tendril/lib/app/module/template';
+
+export const template: Template<App> =
+{'path': {'to': {'c': `c`,
+'d': `d`,
+'e': `e`}}}

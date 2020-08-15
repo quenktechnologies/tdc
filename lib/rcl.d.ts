@@ -44,14 +44,14 @@ export declare const file2Imports: (f: ast.File) => Imports;
  * imports2TS converts a map of imports to
  * the relevant TypeScript import blocks.
  */
-export declare const imports2TS: (i: Imports) => string;
+export declare const imports2TS: (i: Imports) => TypeScript;
 /**
  * file2TS transforms a file into a function for installing
  * routes.
  *
  * This writes only the function and not imports.
  */
-export declare const file2TS: (ctx: Context, f: ast.File) => Future<string>;
+export declare const file2TS: (ctx: Context, f: ast.File) => Future<TypeScript>;
 /**
  * parse source text into an rcl File node.
  */
@@ -59,4 +59,4 @@ export declare const parse: (src: string) => Future<ast.File>;
 /**
  * compile some source text into TypeScript code.
  */
-export declare const compile: (src: string, ctx: Context) => Future<string>;
+export declare const compile: (src: string, ctx: Context) => Future<TypeScript>;

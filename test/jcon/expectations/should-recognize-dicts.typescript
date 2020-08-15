@@ -1,0 +1,6 @@
+
+import {Template} from @quenk/tendril/lib/app/module/template';
+
+export const template: Template<App> =
+{'object': {'test': `yes`,
+'number': 2}}

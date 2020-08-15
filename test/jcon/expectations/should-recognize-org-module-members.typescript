@@ -1,0 +1,5 @@
+import * as either from '@quenk/noni/lib/data/either'; 
+import {Template} from @quenk/tendril/lib/app/module/template';
+
+export const template: Template<App> =
+{'either': either.Either}

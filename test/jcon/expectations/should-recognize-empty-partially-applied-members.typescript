@@ -1,0 +1,5 @@
+import * as member from 'path/to/member'; 
+import {Template} from @quenk/tendril/lib/app/module/template';
+
+export const template: Template<App> =
+{'call': member.func()}
