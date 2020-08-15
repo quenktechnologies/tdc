@@ -2,7 +2,10 @@ import * as jcon from './jcon';
 import * as jconAst from '@quenk/jcon/lib/ast';
 import * as rcl from './rcl';
 import * as rclAst from '@quenk/rcl/lib/ast';
+
 import { EOL } from 'os';
+import { dirname } from 'path';
+
 import {
     Path,
     exists,
@@ -12,8 +15,16 @@ import {
     listDirsAbs,
     writeTextFile
 } from '@quenk/noni/lib/io/file';
-import { Future, pure, raise, parallel, doFuture } from '@quenk/noni/lib/control/monad/future';
+import {
+  Future, 
+  pure,
+  raise, 
+  parallel,
+  doFuture 
+}from '@quenk/noni/lib/control/monad/future';
 import { noop } from '@quenk/noni/lib/data/function';
+
+import { ensureID } from './jcon/transform';
 
 export const FILE_CONF = 'conf';
 export const FILE_ROUTE = 'routes';
@@ -200,6 +211,8 @@ const getParsedFile = <A>(path: Path, parser: Parser<A>): Future<A> =>
 
 const compile = ([conf, routes]: ParsedFiles, opts: Options, path: Path) =>
     doFuture<TypeScript>(function*() {
+        
+      conf = ensureID(conf, dirname(path));
 
         let ctx = context(path);
 
