@@ -1,6 +1,6 @@
 import * as ast from '@quenk/jcon/lib/ast';
 
-import { dirname } from 'path';
+import { basename } from 'path';
 
 import { Future, pure, doFuture } from '@quenk/noni/lib/control/monad/future';
 
@@ -53,6 +53,6 @@ export const transformTree = (ctx: Context, f: ast.File): Future<ast.File> =>
 
         let file = yield flattenDirectives(ctx, f);
 
-        return pure(ensureID(file,dirname(ctx.path)));
+        return pure(ensureID(file, basename(ctx.path)));
 
     });

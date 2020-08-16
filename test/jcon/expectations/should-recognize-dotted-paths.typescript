@@ -2,4 +2,5 @@ import * as path from './module/with/relative/../path';
 import {Template} from @quenk/tendril/lib/app/module/template';
 
 export const template: Template<App> =
-{'module': {'as': {'relative': {'path': path.member}}}}
+{'id': `jcon`,
+'module': {'as': {'relative': {'path': path.member}}}}

@@ -2,7 +2,8 @@ import * as tendrilSessionMongodb from '@quenk/tendril-session-mongodb';
 import {Template} from @quenk/tendril/lib/app/module/template';
 
 export const template: Template<App> =
-{'app': {'session': {'enable': true,
+{'id': `jcon`,
+'app': {'session': {'enable': true,
 'options': {'secret': (<string>process.env['SESSION_SECRET']),
 'name': `sessionid`,
 'store': {'provider': tendrilSessionMongodb.session,

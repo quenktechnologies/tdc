@@ -31,7 +31,7 @@ const makeTest = (test, index) => {
     if (process.env.GENERATE) {
 
         return parse(test)
-            .chain(f => compile(newContext(loader), f))
+            .chain(f => compile(newContext(__dirname, loader), f))
             .fork(e => { throw e; },
                 txt =>
                     fs.writeFileSync(`${EXPECTATIONS}/${file}.typescript`, txt));
@@ -41,7 +41,7 @@ const makeTest = (test, index) => {
     if (!test.skip) {
 
         return parse(test)
-            .chain(f => compile(newContext(loader), f))
+            .chain(f => compile(newContext(__dirname, loader), f))
             .fork(e => { throw e; },
                 txt => compare(txt,
                     fs.readFileSync(`${EXPECTATIONS}/${file}.typescript`, {

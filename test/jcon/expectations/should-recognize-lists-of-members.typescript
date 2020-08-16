@@ -3,4 +3,5 @@ import * as to from './path/to';
 import {Template} from @quenk/tendril/lib/app/module/template';
 
 export const template: Template<App> =
-{'array': {'of': {'modules': [one.default,to.member(),one.one]}}}
+{'id': `jcon`,
+'array': {'of': {'modules': [one.default,to.member(),one.one]}}}

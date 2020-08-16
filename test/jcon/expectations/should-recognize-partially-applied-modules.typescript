@@ -2,4 +2,5 @@ import * as module from 'module';
 import {Template} from @quenk/tendril/lib/app/module/template';
 
 export const template: Template<App> =
-{'call': module.func(1,2,[3.3])}
+{'id': `jcon`,
+'call': module.func(1,2,[3.3])}

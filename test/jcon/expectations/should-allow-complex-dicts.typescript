@@ -2,7 +2,8 @@
 import {Template} from @quenk/tendril/lib/app/module/template';
 
 export const template: Template<App> =
-{'complex': {'dict': {'main': {'connector': connector.connector,
+{'id': `jcon`,
+'complex': {'dict': {'main': {'connector': connector.connector,
 'options': {'collection': `websessions`,
 'autoRemove': `interval`,
 'autoRemoveInterval': (<string>process.env['AUTO_REMOVE_INTERVAL'])}}}}}

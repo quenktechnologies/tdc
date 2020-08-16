@@ -2,5 +2,6 @@
 import {Template} from @quenk/tendril/lib/app/module/template';
 
 export const template: Template<App> =
-{'testTrue': true,
+{'id': `jcon`,
+'testTrue': true,
 'testFalse': false}
