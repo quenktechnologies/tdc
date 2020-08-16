@@ -8,12 +8,14 @@ import { Context } from './context';
 import { getAllDirectives } from './util';
 
 /**
- * ensureID ensures a parsed conf file has an id.
+ * addProperties adds special properties useful for module configuration.
  *
- * If there is no id property at the root level then the passed defaultID
- * will be used.
+ * Currently these are:
+ *
+ * 1. id (uses the module basename if not provided)
+ * 2. app.dirs.self
  */
-export const ensureID = (f: ast.File, id: string): ast.File => {
+export const addProperties = (ctx: Context, f: ast.File): ast.File => {
 
     let hasId = f.directives.some(p => (p instanceof ast.Property) &&
         (p.path[0].value === 'id'));
@@ -23,9 +25,18 @@ export const ensureID = (f: ast.File, id: string): ast.File => {
         [
             new ast.Property(
                 [new ast.Identifier('id', {})],
-                new ast.StringLiteral(id, {}),
+                new ast.StringLiteral(basename(ctx.path), {}),
                 {}),
-            ...f.directives,
+            new ast.Property(
+                [
+                    new ast.Identifier('app', {}),
+                    new ast.Identifier('dirs', {}),
+                    new ast.Identifier('self', {})
+                ],
+                new ast.StringLiteral(ctx.path, {}),
+                {}),
+
+            ...f.directives
         ],
         {});
 
@@ -53,6 +64,6 @@ export const transformTree = (ctx: Context, f: ast.File): Future<ast.File> =>
 
         let file = yield flattenDirectives(ctx, f);
 
-        return pure(ensureID(file, basename(ctx.path)));
+        return pure( addProperties(ctx, file));
 
     });

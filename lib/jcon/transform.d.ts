@@ -2,12 +2,14 @@ import * as ast from '@quenk/jcon/lib/ast';
 import { Future } from '@quenk/noni/lib/control/monad/future';
 import { Context } from './context';
 /**
- * ensureID ensures a parsed conf file has an id.
+ * addProperties adds special properties useful for module configuration.
  *
- * If there is no id property at the root level then the passed defaultID
- * will be used.
+ * Currently these are:
+ *
+ * 1. id (uses the module basename if not provided)
+ * 2. app.dirs.self
  */
-export declare const ensureID: (f: ast.File, id: string) => ast.File;
+export declare const addProperties: (ctx: Context, f: ast.File) => ast.File;
 /**
  * flattenDirectives loads the directives of all the includes and makes them
  * available to the root File.
