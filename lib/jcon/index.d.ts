@@ -1,6 +1,7 @@
 import * as ast from '@quenk/jcon/lib/ast';
 import { Future } from '@quenk/noni/lib/control/monad/future';
 import { Path } from '@quenk/noni/lib/io/file';
+import { Context, Loader } from './context';
 /**
  * SourceText source.
  */
@@ -9,30 +10,6 @@ export declare type SourceText = string;
  * Code output.
  */
 export declare type Code = string;
-/**
- * Loader loads the parsed contents of a JCON file
- * into memory.
- */
-export declare type Loader = (path: string) => Future<string>;
-/**
- * Context the jcon file is complied in.
- */
-export interface Context {
-    /**
-     * loader configured for the Context.
-     *
-     * All paths are passed as encountered.
-     */
-    loader: Loader;
-    /**
-     * tendril import module path.
-     */
-    tendril: string;
-    /**
-     * EOL marker to use during compilation.
-     */
-    EOL: string;
-}
 /**
  * Imports map.
  */
@@ -47,9 +24,9 @@ export interface CodeStruct {
     [key: string]: Code | CodeStruct;
 }
 /**
- * newContext constructor function.
+ * newContext creates a new compilation context.
  */
-export declare const newContext: (loader: Loader) => Context;
+export declare const newContext: (path: Path, loader: Loader) => Context;
 /**
  * parse jcon source text into an Abstract Syntax Tree (AST).
  *
@@ -57,13 +34,9 @@ export declare const newContext: (loader: Loader) => Context;
  */
 export declare const parse: (src: SourceText) => Future<ast.File>;
 /**
- * compile some an AST into the TypeScript code.
+ * compile a parsed file into TypeScript code.
  */
 export declare const compile: (ctx: Context, file: ast.File) => Future<Code>;
-/**
- * getAllDirectives provides the directives of a File (and all included files).
- */
-export declare const getAllDirectives: (ctx: Context, f: ast.File) => Future<ast.Directive[]>;
 /**
  * parseJCONFile at the specified path.
  *
@@ -90,6 +63,12 @@ export declare const getAllImports: (dirs: ast.Directive[]) => Imports;
  * flattenImports into a TypeScript string.
  */
 export declare const flattenImports: (ctx: Context, i: Imports) => Code;
+/**
+ * file2TS converts the body of a parsed file into code.
+ *
+ * Note: This only outputs the object, not the surronding imports and preamble.
+ */
+export declare const file2TS: (ctx: Context, f: ast.File) => Code;
 /**
  * value2TS transforms one of the valid value nodes into a TypeScript string.
  */

@@ -1,5 +1,12 @@
 import * as ast from '@quenk/jcon/lib/ast';
 
+import { dirname } from 'path';
+
+import { Future, pure, doFuture } from '@quenk/noni/lib/control/monad/future';
+
+import { Context } from './context';
+import { getAllDirectives } from './util';
+
 /**
  * ensureID ensures a parsed conf file has an id.
  *
@@ -23,3 +30,29 @@ export const ensureID = (f: ast.File, id: string): ast.File => {
         {});
 
 }
+
+/**
+ * flattenDirectives loads the directives of all the includes and makes them
+ * available to the root File.
+ */
+export const flattenDirectives =
+    (ctx: Context, f: ast.File): Future<ast.File> =>
+        doFuture<ast.File>(function*() {
+
+            let dirs = yield getAllDirectives(ctx, f);
+
+            return pure(new ast.File(f.includes, dirs, f.location));
+
+        });
+
+/**
+ * transformTree applies all the transforms to the AST in one go.
+ */
+export const transformTree = (ctx: Context, f: ast.File): Future<ast.File> =>
+    doFuture<ast.File>(function*() {
+
+        let file = yield flattenDirectives(ctx, f);
+
+        return pure(ensureID(file,dirname(ctx.path)));
+
+    });

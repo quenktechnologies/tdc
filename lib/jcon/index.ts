@@ -6,7 +6,6 @@ import {
     Future,
     raise,
     pure,
-    sequential,
     doFuture
 } from '@quenk/noni/lib/control/monad/future';
 import { merge, reduce } from '@quenk/noni/lib/data/record';
@@ -18,6 +17,9 @@ import { Path } from '@quenk/noni/lib/io/file';
 import { match } from '@quenk/noni/lib/control/match';
 import { parse as _parse } from '@quenk/jcon';
 
+import { Context, Loader } from './context';
+import { transformTree } from './transform';
+
 /**
  * SourceText source.
  */
@@ -27,36 +29,6 @@ export type SourceText = string;
  * Code output.
  */
 export type Code = string;
-
-/**
- * Loader loads the parsed contents of a JCON file
- * into memory.
- */
-export type Loader = (path: string) => Future<string>;
-
-/**
- * Context the jcon file is complied in.
- */
-export interface Context {
-
-    /**
-     * loader configured for the Context.
-     *
-     * All paths are passed as encountered.
-     */
-    loader: Loader,
-
-    /**
-     * tendril import module path.
-     */
-    tendril: string,
-
-    /**
-     * EOL marker to use during compilation.
-     */
-    EOL: string
-
-}
 
 /**
  * Imports map.
@@ -78,11 +50,12 @@ export interface CodeStruct {
 }
 
 /**
- * newContext constructor function.
+ * newContext creates a new compilation context.
  */
 export const newContext =
-    (loader: Loader, ): Context =>
+    (path: Path, loader: Loader): Context =>
         merge({ loader, jcon: parse }, {
+            path,
             imports: {},
             output: [],
             tendril: '@quenk/tendril',
@@ -110,52 +83,18 @@ const onParseError = (e: Error): Future<ast.File> => raise(
         `text: \n ${e.message}`));
 
 /**
- * compile some an AST into the TypeScript code.
+ * compile a parsed file into TypeScript code.
  */
 export const compile = (ctx: Context, file: ast.File): Future<Code> =>
     doFuture<Code>(function*() {
 
-        let dirs: ast.Directive[] = yield getAllDirectives(ctx, file);
-
-        // Filter out comments.
-        let props = <ast.Property[]>dirs.filter(d =>
-            (d instanceof ast.Property));
-
-        let code = dict2TS(ctx, new ast.Dict(props, {}));
-
-        return pure(wrapDirectives(ctx, dirs, code));
+        let f = yield transformTree(ctx, file);
+        return pure(wrapDirectives(ctx, f.directives, file2TS(ctx, f)));
 
     });
 
 const paths2TS = (paths: (ast.Identifier | ast.StringLiteral)[]) =>
     paths.map(p => `[${p.value}]`).join('');
-/**
- * getAllDirectives provides the directives of a File (and all included files).
- */
-export const getAllDirectives =
-    (ctx: Context, f: ast.File): Future<ast.Directive[]> =>
-        doFuture(function*() {
-
-            let work = f.includes.map(i => doFuture(function*() {
-
-                let { path } = i;
-
-                let file = yield parseJCONFile(ctx, path.value);
-
-                let childDirectives = yield getAllDirectives(ctx, file);
-
-                return pure([...childDirectives, ...file.directives]);
-
-            }));
-
-            let results: ast.Directive[][] = yield sequential(work);
-
-            let flatResults =
-                results.reduce((p, c) => p.concat(c), <ast.Directive[]>[]);
-
-            return pure([...flatResults, ...f.directives]);
-
-        });
 
 /**
  * parseJCONFile at the specified path.
@@ -252,6 +191,21 @@ export const flattenImports = (ctx: Context, i: Imports): Code =>
         [...p, `import * as ${k} from '${c}'; `]).join(ctx.EOL);
 
 /**
+ * file2TS converts the body of a parsed file into code.
+ *
+ * Note: This only outputs the object, not the surronding imports and preamble.
+ */
+export const file2TS = (ctx: Context, f: ast.File): Code => {
+
+    // Filter out comments.
+    let props = <ast.Property[]>f.directives.filter(d =>
+        (d instanceof ast.Property));
+
+    return dict2TS(ctx, new ast.Dict(props, {}));
+
+}
+
+/**
  * value2TS transforms one of the valid value nodes into a TypeScript string.
  */
 export const value2TS = (ctx: Context, n: ast.Value): Code => <Code>match(n)
@@ -260,6 +214,7 @@ export const value2TS = (ctx: Context, n: ast.Value): Code => <Code>match(n)
     .caseOf(ast.EnvVar, n => envVar2Ts(ctx, n))
     .caseOf(ast.List, n => list2TS(ctx, n))
     .caseOf(ast.Dict, n => dict2TS(ctx, n))
+    .caseOf(ast.Function, n => n.body)
     .caseOf(ast.StringLiteral, literal2TS)
     .caseOf(ast.NumberLiteral, literal2TS)
     .caseOf(ast.BooleanLiteral, literal2TS)
