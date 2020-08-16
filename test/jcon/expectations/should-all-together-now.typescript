@@ -1,3 +1,4 @@
+import * as connector from 'path/to/connector'; 
 import * as path from 'path'; 
 import * as os from 'os'; 
 import * as http from 'http'; 

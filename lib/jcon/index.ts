@@ -149,36 +149,28 @@ export const wrapDirectives =
  * pointer syntax) found in the list of directives provided.
  */
 export const getAllImports = (dirs: ast.Directive[]): Imports =>
-    dirs.reduce((p, c) => {
+    dirs.reduce((p, c) => (c instanceof ast.Property) ?
+        addImports(p, c.value) : p, <Imports>{});
 
-        if (c instanceof ast.Property) {
+const addImports = (rec: Imports, n: ast.Value): Imports => {
 
-            let { value } = c;
+    if (n instanceof ast.Member)
+        return set(normalizeId(tail(n.module.module.split('/'))),
+            n.module.module, rec);
+    else if (n instanceof ast.List)
+        return addImportsInList(rec, n);
+    else if (n instanceof ast.Dict)
+        return addImportsInDict(rec, n);
+    else
+        return rec;
 
-            if (value instanceof ast.Member)
-                return addImports(p, value);
-            else if (value instanceof ast.List)
-                return addImportsInList(p, value);
-            else if (value instanceof ast.Dict)
-                return addImportsInDict(p, value);
-
-        }
-
-        return p;
-
-    }, <Imports>{});
-
-
-const addImports = (rec: Imports, m: ast.Member) =>
-    set(normalizeId(tail(m.module.module.split('/'))), m.module.module, rec);
+}
 
 const addImportsInList = (rec: Imports, l: ast.List) =>
-    l.elements.reduce((p, c) => (c instanceof ast.Member) ?
-        addImports(p, c) : rec, rec);
+    l.elements.reduce(addImports, rec);
 
 const addImportsInDict = (rec: Imports, d: ast.Dict) =>
-    d.properties.reduce((rec, c) => (c.value instanceof ast.Member) ?
-        addImports(rec, c.value) : rec, rec);
+    d.properties.reduce((p,c) => addImports(p, c.value), rec);
 
 const normalizeId = (str: string): string =>
     uncapitalize(camelCase(str));
