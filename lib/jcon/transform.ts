@@ -17,28 +17,23 @@ import { getAllDirectives } from './util';
  */
 export const addProperties = (ctx: Context, f: ast.File): ast.File => {
 
-    let hasId = f.directives.some(p => (p instanceof ast.Property) &&
-        (p.path[0].value === 'id'));
+    let id = f.directives.reduce((prev, prop) =>
+        ((prop instanceof ast.Property) && (prop.path[0].value === 'id')) ?
+            (<ast.StringLiteral>prop.value).value : prev, basename(ctx.path));
 
-    return hasId ? f : new ast.File(
-        f.includes,
+    let idProp = new ast.Property(
+        [new ast.Identifier('id', {})],
+        new ast.StringLiteral(id, {}), {});
+
+    let selfProp = new ast.Property(
         [
-            new ast.Property(
-                [new ast.Identifier('id', {})],
-                new ast.StringLiteral(basename(ctx.path), {}),
-                {}),
-            new ast.Property(
-                [
-                    new ast.Identifier('app', {}),
-                    new ast.Identifier('dirs', {}),
-                    new ast.Identifier('self', {})
-                ],
-                new ast.StringLiteral(ctx.path, {}),
-                {}),
-
-            ...f.directives
+            new ast.Identifier('app', {}),
+            new ast.Identifier('dirs', {}),
+            new ast.Identifier('self', {}),
         ],
-        {});
+        new ast.StringLiteral(ctx.path, {}), {});
+
+    return new ast.File(f.includes, [idProp, selfProp, ...f.directives], {});
 
 }
 
@@ -64,6 +59,6 @@ export const transformTree = (ctx: Context, f: ast.File): Future<ast.File> =>
 
         let file = yield flattenDirectives(ctx, f);
 
-        return pure( addProperties(ctx, file));
+        return pure(addProperties(ctx, file));
 
     });
