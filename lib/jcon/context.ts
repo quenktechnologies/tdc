@@ -12,6 +12,11 @@ export type Loader = (path: string) => Future<string>;
  */
 export interface Context {
 
+  /**
+   * root is the path to the root directory of the project being compiled.
+   */
+  root: Path,
+
     /**
      * path to the directory being compiled.
      */

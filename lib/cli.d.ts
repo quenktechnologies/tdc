@@ -17,6 +17,7 @@ export interface Arguments {
     '--no-start': boolean;
     '--ignore': string[];
     '--main': string;
+    '--root-dir': string;
 }
 export interface Options {
     module: string;
@@ -24,6 +25,7 @@ export interface Options {
     noStart: boolean;
     ignore: RegExp[];
     main: string;
+    rootDir: string;
 }
 /**
  * args2Opts function.
