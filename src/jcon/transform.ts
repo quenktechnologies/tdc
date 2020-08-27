@@ -1,8 +1,9 @@
 import * as ast from '@quenk/jcon/lib/ast';
 
-import { basename } from 'path';
+import { basename, normalize } from 'path';
 
 import { Future, pure, doFuture } from '@quenk/noni/lib/control/monad/future';
+import {Path} from '@quenk/noni/lib/io/file';
 
 import { Context } from './context';
 import { getAllDirectives } from './util';
@@ -31,9 +32,16 @@ export const addProperties = (ctx: Context, f: ast.File): ast.File => {
             new ast.Identifier('dirs', {}),
             new ast.Identifier('self', {}),
         ],
-        new ast.StringLiteral(ctx.path, {}), {});
+        new ast.StringLiteral(getRelPath(ctx.root, ctx.path), {}), {});
 
     return new ast.File(f.includes, [idProp, selfProp, ...f.directives], {});
+
+}
+
+const getRelPath = (root: Path, dir: Path) => {
+
+    let path = normalize(dir.split(root).join(''));
+    return (path === '') ? '/' : path;
 
 }
 

@@ -1,7 +1,7 @@
-import * as jcon from './jcon';
 import * as jconAst from '@quenk/jcon/lib/ast';
-import * as rcl from './rcl';
 import * as rclAst from '@quenk/rcl/lib/ast';
+import * as jcon from './jcon';
+import * as rcl from './rcl';
 
 import { EOL } from 'os';
 
@@ -23,7 +23,7 @@ import {
 } from '@quenk/noni/lib/control/monad/future';
 import { noop } from '@quenk/noni/lib/data/function';
 
-import {transformTree} from './jcon/transform';
+import { transformTree } from './jcon/transform';
 
 export const FILE_CONF = 'conf';
 export const FILE_ROUTE = 'routes';
@@ -51,7 +51,9 @@ export interface Arguments {
 
     '--ignore': string[],
 
-    '--main': string
+    '--main': string,
+
+    '--root-dir': string
 
 }
 
@@ -65,15 +67,19 @@ export interface Options {
 
     ignore: RegExp[],
 
-    main: string
+    main: string,
+
+    rootDir: string
 
 }
 
-const context = (cwd: Path) => ({
+const newContext = (root: Path, path: Path) => ({
 
-    path: cwd,
+    path,
 
-    loader: (path: Path) => readTextFile(`${cwd}/${path}`),
+    root,
+
+    loader: (target: Path) => readTextFile(`${path}/${target}`),
 
     jcon: jcon.parse,
 
@@ -98,7 +104,9 @@ export const args2Opts = (args: Arguments): Options => ({
 
     ignore: ['node_modules'].concat(args['--ignore']).map(p => new RegExp(p)),
 
-    main: (args['--main'] != null) ? args['--main'] : DEFAULT_MAIN
+    main: (args['--main'] != null) ? args['--main'] : DEFAULT_MAIN,
+
+    rootDir: (args['--root-dir'] != null) ? args['--root-dir'] : process.cwd()
 
 })
 
@@ -145,7 +153,6 @@ export const isModule = (path: Path): Future<boolean> =>
                 return pure(results.filter(y => y).length > 0);
 
             }
-
 
         }
 
@@ -213,7 +220,7 @@ const getParsedFile = <A>(path: Path, parser: Parser<A>): Future<A> =>
 const compile = ([conf, routes]: ParsedFiles, opts: Options, path: Path) =>
     doFuture<TypeScript>(function*() {
 
-        let ctx = context(path);
+        let ctx = newContext(opts.rootDir, path);
 
         let rclCode = yield rcl.file2TS(ctx, routes);
 

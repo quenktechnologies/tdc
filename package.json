@@ -16,8 +16,8 @@
   "author": "Quenk Technologies Limited <info@quenk.com> (http://quenk.com)",
   "license": "Apache-2.0",
   "dependencies": {
-    "@quenk/jcon": "^0.14.5",
-    "@quenk/noni": "^1.40.1",
+    "@quenk/jcon": "^0.14.8",
+    "@quenk/noni": "^1.40.2",
     "@quenk/rcl": "^0.9.0",
     "docopt": "^0.6.2"
   },

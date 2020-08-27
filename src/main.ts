@@ -10,7 +10,8 @@ const BIN = basename(__filename);
 const opts = args2Opts(docopt.docopt<Arguments>(`
 
 Usage:
-  ${BIN} [options] [--no-recurse] [--no-start] [--ignore=PATH...] <module>
+  ${BIN} [options] [--no-recurse] [--no-start] [--ignore=PATH...]
+         [--root-dir=PATH] <module>
   ${BIN} [options] [--no-recurse] [--no-start] [--ignore=PATH...]
          --main PATH <module>
 
@@ -21,6 +22,8 @@ Options:
   --ignore PATH      Ignore paths that match this expression.
   --main PATH        Path to the class that will be used as the app. Must be
                      in the format <module>#<export>.
+  --root-dir PATH    The path to treat as the root of the project. Defaults to
+                     the current working directory.
   --version          Show version.
 `, {
     version: require('../package.json').version

@@ -56,6 +56,7 @@ export const newContext =
     (path: Path, loader: Loader): Context =>
         merge({ loader, jcon: parse }, {
             path,
+          root: path,
             imports: {},
             output: [],
             tendril: '@quenk/tendril',
