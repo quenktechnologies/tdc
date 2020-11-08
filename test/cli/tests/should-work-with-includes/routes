@@ -1,0 +1,12 @@
+
+GET / "index.html"
+
+%set ctl = @org/controllers#User("bar")
+
+%include "./endpoints"
+
+DELETE / "404.html"
+
+%set ctl = @org/controllers#Admin("foo")
+
+%include "./endpoints2"

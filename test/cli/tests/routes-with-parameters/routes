@@ -1,0 +1,4 @@
+
+GET / ./handlers#index("posts")
+
+GET /:id @org/module/handlers#post($id)

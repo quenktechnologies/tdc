@@ -1,0 +1,6 @@
+
+GET / "index.html"
+
+GET /:id "user.html" { id = $params.id }
+
+DELETE /:id ensureAuth "delete.html" { id = $params.id }

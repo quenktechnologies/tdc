@@ -1,0 +1,7 @@
+%set ctl = @org/controllers#main
+
+GET     / ctl.index
+
+%set ctl = @org/controllers#remover
+
+DELETE  / ctl.remove($params.id)
