@@ -1,20 +1,22 @@
 import * as ast from '@quenk/rcl/lib/ast';
+
 import { EOL } from 'os';
-import { merge, reduce } from '@quenk/noni/lib/data/record';
+
+import { merge } from '@quenk/noni/lib/data/record';
+import { set } from '@quenk/noni/lib/data/record/path';
 import { match } from '@quenk/noni/lib/control/match';
+import { flatten, tail, contains } from '@quenk/noni/lib/data/array';
 import {
     Future,
     parallel,
     pure,
-    raise
+    fromCallback,
+    doFuture
 } from '@quenk/noni/lib/control/monad/future';
-import { Path } from '@quenk/noni/lib/io/file';
 import { tree, parse as _parse } from '@quenk/rcl';
 
-/**
- * TypeScript output.
- */
-export type TypeScript = string;
+import { Code } from './common/output';
+import { Imports, normalize } from './common/imports';
 
 /**
  * Loader loads the parsed contents of a RCL file
@@ -28,17 +30,14 @@ export type Loader = (path: string) => Future<string>;
 export type Parser = (src: string) => Future<ast.File>;
 
 /**
- * Imports map.
- */
-export interface Imports {
-
-    [key: string]: string | string[]
-}
-
-/**
  * Context compilation takes place in.
  */
 export interface Context {
+
+    /**
+     * locals is a list of variable names found in the compiled source.
+     */
+    locals: string[],
 
     /**
      * loader configured
@@ -55,38 +54,88 @@ export interface Context {
 /**
  * newContext constructor function.
  */
-export const newContext =
-    (loader: Loader): Context =>
-        merge({ loader, rcl: parse }, {
-            EOL
-        });
+export const newContext = (loader: Loader): Context =>
+    merge({ loader, rcl: parse, locals: [] }, {});
 
 /**
- * file2Imports extracts the imports for a File
+ * parse source text into an rcl File node.
  */
-export const file2Imports = (f: ast.File): Imports =>
-    f.imports.reduce(addImport, {});
+export const parse = (src: string): Future<ast.File> =>
+    fromCallback(cb => {
 
-const addImport = (p: Imports, c: ast.Import): Imports => <Imports>match(c)
-    .caseOf(ast.MemberImport, addMemberImport(p))
-    .caseOf(ast.QualifiedImport, addQualifiedImport(p))
-    .end();
+        let eresult = _parse(src, tree);
 
-const addMemberImport = (p: Imports) => ({ members, module }: ast.MemberImport) =>
-    merge(p, { [module.value]: members.map(m => m.value) });
+        if (eresult.isLeft()) {
+            let msg = eresult.takeLeft().message;
+            cb(new Error(`rcl: Error while parsing source text: \n ${msg}`));
 
-const addQualifiedImport = (p: Imports) => ({ module, id }: ast.QualifiedImport) =>
-    merge(p, { [module.value]: id.value });
+        } else {
+
+            cb(null, <ast.File>eresult.takeRight());
+
+        }
+
+    });
 
 /**
- * imports2TS converts a map of imports to 
- * the relevant TypeScript import blocks.
+ * compile some source text into Code code.
  */
-export const imports2TS = (i: Imports): TypeScript =>
-    reduce(i, [], (p: TypeScript[], c, k) =>
-        Array.isArray(c) ?
-            [...p, `import { ${c.join(',')} } from '${k}';`] :
-            [...p, `import * as ${c} from '${k}';`]).join(EOL);
+export const compile = (src: string, ctx: Context): Future<Code> =>
+    parse(src).chain(f => file2TS(ctx, f));
+
+/**
+ * getAllImports provides an Imports object containing all the imports found
+ * in a file based on detected module pointer syntax usage.
+ */
+export const getAllImports = (file: ast.File): Imports =>
+    file.body.reduce((imps, node: ast.Node) => {
+
+        if (node instanceof ast.Set)
+            return takeImports(imps, node.value);
+
+        else if (node instanceof ast.Route)
+            return node.filters.reduce(takeImports, imps);
+
+        else
+            return imps;
+
+    }, <Imports>{});
+
+const takeImports = (imps: Imports, node: ast.Expression): Imports => {
+
+    if (node instanceof ast.ModuleMember) {
+
+        let { module } = node;
+        return set(normalize(module), module, imps);
+
+    } else if (node instanceof ast.FunctionCall) {
+
+        return takeImportsFromFuncCall(imps, node);
+
+    } else if (node instanceof ast.List) {
+
+        return takeImportsFromList(imps, node);
+
+    } else if (node instanceof ast.Dict) {
+
+        return takeImportsFromDict(imps, node);
+
+    } else {
+
+        return imps;
+
+    }
+
+}
+
+const takeImportsFromList = (imps: Imports, node: ast.List) =>
+    node.elements.reduce(takeImports, imps);
+
+const takeImportsFromDict = (imps: Imports, node: ast.Dict) =>
+    node.properties.reduce((p, c) => takeImports(p, c.value), imps);
+
+const takeImportsFromFuncCall = (imps: Imports, node: ast.FunctionCall) =>
+    node.args.reduce(takeImports, takeImports(imps, node.id));
 
 /**
  * file2TS transforms a file into a function for installing 
@@ -94,124 +143,202 @@ export const imports2TS = (i: Imports): TypeScript =>
  *
  * This writes only the function and not imports.
  */
-export const file2TS = (ctx: Context, f: ast.File): Future<TypeScript> =>
-    (loadFileRec(ctx)(f))
-        .map(fileRoutes2TS)
-        .map(wrapInFunc);
+export const file2TS = (ctx: Context, node: ast.File): Future<Code> =>
+    doFuture(function*() {
 
-const loadFileRec = (ctx: Context) => (f: ast.File): Future<ast.File> =>
-    parallel(f.includes.map(p => loadFile(ctx, p.path.value))).map(mergeRs(f));
+        let file = yield resolveIncludes(ctx, node)
 
-const loadFile = (ctx: Context, path: Path): Future<ast.File> =>
-    ctx
-        .loader(path)
-        .chain(ctx.rcl)
-        .chain(loadFileRec(ctx));
+        let nodes = file.body.filter((n: ast.Node) =>
+            !(n instanceof ast.Comment));
 
-const mergeRs = (f: ast.File) => (list: ast.File[]): ast.File =>
-    list.reduce((p: ast.File, c: ast.File) => {
-        p.routes = [...c.routes, ...p.routes];
-        return p;
-    }, f);
+        let code = [`($module:Module) => {${EOL}${EOL}`];
 
-const fileRoutes2TS = (f: ast.File) =>
-    `return [` + f
-        .routes
-        .reduce(onlyRoutes2TS, [])
-        .join(',') + `]`;
+        code.push('let $routes = [];', EOL);
 
-const onlyRoutes2TS = (p: TypeScript[], c: ast.Routes) =>
-    (c instanceof ast.Route) ? p.concat(route2TS(c)) : p;
+        nodes.forEach((bodyNode: ast.Node) => {
 
-const wrapInFunc = (ts: TypeScript): TypeScript =>
-    `(_m:Module) => {${EOL}${EOL}${ts}${EOL}}`;
+            if (bodyNode instanceof ast.Set) {
 
-const route2TS = (r: ast.Route): TypeScript =>
-    `{ method: ${method2TS(r.method)},` +
-    `path: ${pattern2TS(r.pattern)},` +
-    `filters: ` + (r.view ?
-        `[${r.filters.length > 0 ? filters2TS(r.filters) + ',' : ''}` +
-        `${view2TS(r.view)}]);${EOL}` :
-        `[${filters2TS(r.filters)}]}${EOL}`);
+                code.push(set2TS(ctx, bodyNode));
+                code.push(EOL);
 
-const filters2TS = (filters: ast.FilterExpression[]): TypeScript =>
-    filters.map(filter2TS).join(',');
+            } else if (bodyNode instanceof ast.Route) {
 
-const method2TS = (m: ast.Method): TypeScript =>
-    `'${m.toLowerCase()}'`;
+                code.push(EOL);
+                code.push('$routes.push(');
+                code.push(route2TS(bodyNode));
+                code.push(');');
+                code.push(EOL);
 
-const pattern2TS = (p: ast.Pattern): TypeScript =>
-    `'${p.value}'`;
+            }
 
-const view2TS = (view?: ast.View) => (view) ?
-    `_m.show(${literal2TS(view.view)}, ` +
-    `${dict2TS(view.context)})` :
-    '';
+        });
 
-const filter2TS = (f: ast.FilterExpression): TypeScript => {
+        code.push('return $routes;');
+        code.push(EOL);
+        code.push('}');
 
-    if (f instanceof ast.Spread)
-        return `...${filter2TS(f.filter)}`
-    else
-        return `${identifier2TS(f.value)} ` +
-            `${f.invoked ? '(' + f.args.map(value2TS).join(',') + ')' : ''} `;
+        return pure(code.join(''));
+
+    });
+
+/**
+ * resolveIncludes found in a File node.
+ *
+ * This merges the contents of each [[ast.Include]] found into the passed
+ * [[ast.File]].
+ */
+export const resolveIncludes =
+    (ctx: Context, node: ast.File): Future<ast.File> =>
+        doFuture<ast.File>(function*() {
+
+            let work = parallel(node.body.map(n => doFuture(function*() {
+
+                if (n instanceof ast.Include) {
+
+                    let txt = yield ctx.loader(n.path.value);
+                    let _file = yield ctx.rcl(txt);
+                    let file = yield resolveIncludes(ctx, _file);
+                    return pure(file.body);
+
+                } else {
+
+                    return pure(n);
+
+                }
+
+            })));
+
+            node.body = flatten(yield work);
+
+            return pure(node);
+
+        });
+
+const set2TS = (ctx: Context, node: ast.Set): Code => {
+
+    let id = node.id.value;
+    let assignment = `${id} = ${value2TS(node.value)};`;
+
+    if (!contains(ctx.locals, id)) {
+
+        ctx.locals.push(id);
+        return `let ${assignment}`;
+
+    } else {
+
+        return assignment;
+
+    }
 
 }
 
-const value2TS = (n: ast.Value): TypeScript => <TypeScript>match(n)
+const route2TS = (node: ast.Route): Code => {
+
+    let code = [];
+
+    code.push('{', EOL);
+    code.push('method:', `'${node.method.toLowerCase()}'`, ',', EOL);
+    code.push('path:', `'${node.pattern.value}'`, ',', EOL);
+    code.push('filters:');
+    code.push('[');
+
+    let filters = node.filters.map(f => {
+
+        let out = value2TS(f);
+
+        if (f instanceof ast.FunctionCall) {
+
+            return `// @ts-ignore: 6133
+                ($request: Request)=> {
+
+                  // @ts-ignore: 6133
+                 let $params:_json.Object = $request.params || {};
+                 // @ts-ignore: 6133
+                 let $query: _json.Object = $request.query || {};
+                 //@ts-ignore: 6133
+                 let $body = _json.Value = $request.body;
+
+                 return ${out};
+        }`
+
+        } else {
+
+            return out;
+
+        }
+
+    }).join(',');
+
+    code.push(filters);
+
+    if (node.view)
+        code.push(view2TS(node.view));
+
+    code.push(']');
+    code.push('}');
+    return code.join('');
+
+}
+
+const view2TS = (view?: ast.View) => (view) ?
+    `$module.show(${literal2TS(view.view)}, ` +
+    `${dict2TS(view.context)})` :
+    '';
+
+const value2TS = (node: ast.Expression): Code => <Code>match(node)
+    .caseOf(ast.FunctionCall, functionCall2TS)
+    .caseOf(ast.ModuleMember, modueMember2TS)
     .caseOf(ast.List, list2TS)
     .caseOf(ast.Dict, dict2TS)
     .caseOf(ast.StringLiteral, literal2TS)
     .caseOf(ast.NumberLiteral, literal2TS)
     .caseOf(ast.BooleanLiteral, literal2TS)
-    .caseOf(ast.EnvVar, envVar2Ts)
-    .caseOf(ast.UnqualifiedIdentifier, identifier2TS)
-    .caseOf(ast.QualifiedIdentifier, identifier2TS)
+    .caseOf(ast.EnvVar, envVar2TS)
+    .caseOf(ast.Identifier, anyIdentifier2TS)
+    .caseOf(ast.QualifiedIdentifier, anyIdentifier2TS)
     .end();
 
-const list2TS = (l: ast.List): TypeScript =>
-    `[${l.elements.map(value2TS).join(',')}]`;
+const functionCall2TS = ({ id, args }: ast.FunctionCall): Code => {
 
-const dict2TS = (d: ast.Dict): TypeScript => {
+    let name = (id instanceof ast.ModuleMember) ?
+        modueMember2TS(id) : anyIdentifier2TS(id);
 
-    let props = d.properties.map(p => `${value2TS(p.key)}: ${value2TS(p.value)} `);
-    return `{ ${props.join(',\n')} } `;
+    let argsStr = args.map(value2TS).join(',');
+    let ret = `${name}(${argsStr})`;
+    let target = tail(name.split('.'));
+    let isConstructor = target[0] === target[0].toUpperCase();
+
+    return isConstructor ? `new ${ret}` : ret;
 
 }
 
-const literal2TS = (n: ast.Literal): TypeScript =>
-    (n instanceof ast.StringLiteral) ? `\`${n.value}\`` : n.value;
+const modueMember2TS = ({ module, member }: ast.ModuleMember) =>
+    `${normalize(module)}.${member.value}`;
 
-const envVar2Ts = (n: ast.EnvVar): TypeScript =>
-    `process.env['${value2TS(n.key)}']`;
+const list2TS = ({ elements }: ast.List): Code =>
+    `[${elements.map(value2TS).join(',')}]`;
 
-const identifier2TS = (i: ast.Identifier): TypeScript => <TypeScript>match(i)
+const dict2TS = ({ properties }: ast.Dict): Code =>
+    `{` +
+
+    properties.map(p =>
+        `${value2TS(p.key)}: ${value2TS(p.value)} `).join('\n') +
+
+    '}';
+
+const literal2TS = (node: ast.Literal): Code =>
+    (node instanceof ast.StringLiteral) ? `\`${node.value}\`` : node.value;
+
+const envVar2TS = (node: ast.EnvVar): Code =>
+    `process.env['${value2TS(node.key)}']`;
+
+const anyIdentifier2TS = (i: ast.AnyIdentifier): Code => <Code>match(i)
+    .caseOf(ast.Identifier, identifier2TS)
     .caseOf(ast.QualifiedIdentifier, qualifiedIdentifier2TS)
-    .caseOf(ast.UnqualifiedIdentifier, unqualifiedIdentifier2TS)
     .end();
 
-const qualifiedIdentifier2TS = (n: ast.QualifiedIdentifier) =>
-    n.path.map(unqualifiedIdentifier2TS).join('.');
+const qualifiedIdentifier2TS = (node: ast.QualifiedIdentifier) =>
+    node.path.map(identifier2TS).join('.');
 
-const unqualifiedIdentifier2TS = (n: ast.UnqualifiedIdentifier) =>
-    n.value;
-
-/**
- * parse source text into an rcl File node.
- */
-export const parse = (src: string): Future<ast.File> =>
-    _parse(src, tree)
-        .map(n => (n instanceof ast.File) ? pure(n) : raise(notFile(n)))
-        .orRight(raise)
-        .map((f: Future<ast.File>) => f)
-        .takeRight();
-
-const notFile = (n: ast.Node) =>
-    new Error(`Expected a valid file got "${n.type}" after parsing!`);
-
-/**
- * compile some source text into TypeScript code.
- */
-export const compile = (src: string, ctx: Context): Future<TypeScript> =>
-    parse(src).chain(f => file2TS(ctx, f));
-
+const identifier2TS = (node: ast.Identifier) => node.value;

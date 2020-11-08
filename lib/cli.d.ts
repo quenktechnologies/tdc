@@ -52,6 +52,10 @@ export declare const exec: (path: Path, opts: Options) => Future<void>;
  */
 export declare const getTDCFiles: (path: Path) => Future<ParsedFiles>;
 /**
+ * @private
+ */
+export declare const compile: ([conf, routes]: ParsedFiles, opts: Options, path: Path) => Future<string>;
+/**
  * execR executes recursively on a path.
  *
  * All directories under the given path will be checked for

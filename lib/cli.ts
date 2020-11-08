@@ -24,6 +24,8 @@ import {
 import { noop } from '@quenk/noni/lib/data/function';
 
 import { transformTree } from './jcon/transform';
+import { toCode } from './common/imports';
+import { merge } from '@quenk/noni/lib/data/record';
 
 export const FILE_CONF = 'conf';
 export const FILE_ROUTE = 'routes';
@@ -78,6 +80,8 @@ const newContext = (root: Path, path: Path) => ({
     path,
 
     root,
+
+    locals: <string[]>[],
 
     loader: (target: Path) => readTextFile(`${path}/${target}`),
 
@@ -217,7 +221,10 @@ const getParsedFile = <A>(path: Path, parser: Parser<A>): Future<A> =>
         .chain(yes => yes ? readTextFile(path) : pure(''))
         .chain(parser)
 
-const compile = ([conf, routes]: ParsedFiles, opts: Options, path: Path) =>
+/**
+ * @private
+ */
+export const compile = ([conf, routes]: ParsedFiles, opts: Options, path: Path) =>
     doFuture<TypeScript>(function*() {
 
         let ctx = newContext(opts.rootDir, path);
@@ -229,17 +236,27 @@ const compile = ([conf, routes]: ParsedFiles, opts: Options, path: Path) =>
             addCreate(addRoutes(conf, rclCode))
         );
 
+        let imports = merge(
+            jcon.getAllImports(jconTree.directives),
+            rcl.getAllImports(routes)
+        );
+
         let jconCode = jcon.file2TS(ctx, jconTree);
 
         let combinedCode = [
 
-            jcon.flattenImports(ctx, jcon.getAllImports(jconTree.directives)),
-            rcl.imports2TS(rcl.file2Imports(routes)),
+            toCode(imports),
+            `//@ts-ignore: 6133`,
+            `import * as _json from '@quenk/noni/lib/data/jsonx';`,
+            `//@ts-ignore: 6133`,
             `import {Template} from '@quenk/tendril/lib/app/module/template';`,
+            `//@ts-ignore: 6133`,
             `import {Module} from '@quenk/tendril/lib/app/module';`,
+            `//@ts-ignore: 6133`,
+            `import {Request} from '@quenk/tendril/lib/app/api/request;'`,
             getMainImport(opts),
             ctx.EOL,
-            `export const template = (_app:App) : Template<App> =>` +
+            `export const template = (_app: App): Template<App> => ` +
             `(${ctx.EOL} ${jconCode})`
 
         ].join(EOL);

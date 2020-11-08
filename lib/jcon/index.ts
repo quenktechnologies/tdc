@@ -6,38 +6,20 @@ import {
     Future,
     raise,
     pure,
-    doFuture
+    doFuture,
+    fromCallback
 } from '@quenk/noni/lib/control/monad/future';
 import { merge, reduce } from '@quenk/noni/lib/data/record';
 import { set } from '@quenk/noni/lib/data/record/path';
-import { tail } from '@quenk/noni/lib/data/array';
-import { camelCase, uncapitalize } from '@quenk/noni/lib/data/string';
 import { isObject } from '@quenk/noni/lib/data/type';
 import { Path } from '@quenk/noni/lib/io/file';
 import { match } from '@quenk/noni/lib/control/match';
 import { parse as _parse } from '@quenk/jcon';
 
+import { SourceString, Code } from '../common/output';
+import { Imports, normalize, toCode } from '../common/imports';
 import { Context, Loader } from './context';
 import { transformTree } from './transform';
-
-/**
- * SourceText source.
- */
-export type SourceText = string;
-
-/**
- * Code output.
- */
-export type Code = string;
-
-/**
- * Imports map.
- */
-export interface Imports {
-
-    [key: string]: string
-
-}
 
 /**
  * CodeStruct holds the Code for the final output of compilation in a structure
@@ -56,7 +38,7 @@ export const newContext =
     (path: Path, loader: Loader): Context =>
         merge({ loader, jcon: parse }, {
             path,
-          root: path,
+            root: path,
             imports: {},
             output: [],
             tendril: '@quenk/tendril',
@@ -68,20 +50,22 @@ export const newContext =
  *
  * The [[ast.File|File]] node is always the root node of the AST.
  */
-export const parse = (src: SourceText): Future<ast.File> => {
+export const parse = (src: SourceString): Future<ast.File> =>
+    fromCallback(cb => {
 
-    let mfile = _parse(src);
+        let eresult = _parse(src);
 
-    if (mfile.isLeft())
-        return onParseError(mfile.takeLeft());
+        if (eresult.isLeft()) {
+            let msg = eresult.takeLeft().message;
+            cb(new Error(`jcon: Error while parsing source text: \n ${msg}`));
 
-    return pure(<ast.File>mfile.takeRight());
+        } else {
 
-}
+            cb(null, <ast.File>eresult.takeRight());
 
-const onParseError = (e: Error): Future<ast.File> => raise(
-    new Error(`An error occurred while parsing file the provided source ` +
-        `text: \n ${e.message}`));
+        }
+
+    });
 
 /**
  * compile a parsed file into TypeScript code.
@@ -138,7 +122,7 @@ export const flattenCodeStruct =
 export const wrapDirectives =
     (ctx: Context, dirs: ast.Directive[], code: Code): Code =>
         [
-            flattenImports(ctx, getAllImports(dirs)),
+            toCode(getAllImports(dirs), ctx.EOL),
             `import {Template} from ${ctx.tendril}/lib/app/module/template';`,
             ``,
             `export const template: Template<App> =`,
@@ -153,35 +137,27 @@ export const getAllImports = (dirs: ast.Directive[]): Imports =>
     dirs.reduce((p, c) => (c instanceof ast.Property) ?
         addImports(p, c.value) : p, <Imports>{});
 
-const addImports = (rec: Imports, n: ast.Value): Imports => {
+const addImports = (imps: Imports, node: ast.Value): Imports => {
 
-    if (n instanceof ast.Member)
-        return set(normalizeId(tail(n.module.module.split('/'))),
-            n.module.module, rec);
-    else if (n instanceof ast.List)
-        return addImportsInList(rec, n);
-    else if (n instanceof ast.Dict)
-        return addImportsInDict(rec, n);
+    if (node instanceof ast.Member)
+        return set(normalize(node.module.module), node.module.module, imps);
+
+    else if (node instanceof ast.List)
+        return addImportsInList(imps, node);
+
+    else if (node instanceof ast.Dict)
+        return addImportsInDict(imps, node);
+
     else
-        return rec;
+        return imps;
 
 }
 
-const addImportsInList = (rec: Imports, l: ast.List) =>
-    l.elements.reduce(addImports, rec);
+const addImportsInList = (imps: Imports, node: ast.List) =>
+    node.elements.reduce(addImports, imps);
 
-const addImportsInDict = (rec: Imports, d: ast.Dict) =>
-    d.properties.reduce((p,c) => addImports(p, c.value), rec);
-
-const normalizeId = (str: string): string =>
-    uncapitalize(camelCase(str));
-
-/**
- * flattenImports into a TypeScript string.
- */
-export const flattenImports = (ctx: Context, i: Imports): Code =>
-    reduce(i, [], (p, c, k) =>
-        [...p, `import * as ${k} from '${c}'; `]).join(ctx.EOL);
+const addImportsInDict = (imps: Imports, node: ast.Dict) =>
+    node.properties.reduce((p, c) => addImports(p, c.value), imps);
 
 /**
  * file2TS converts the body of a parsed file into code.
@@ -215,7 +191,7 @@ export const value2TS = (ctx: Context, n: ast.Value): Code => <Code>match(n)
     .end();
 
 const member2TS = (ctx: Context, m: ast.Member) =>
-    `${normalizeId(tail(m.module.module.split('/')))}.` +
+    `${normalize(m.module.module)}.` +
     (m.invocation ?
         `${value2TS(ctx, m.member)}` +
         `(${m.parameters.map(p => value2TS(ctx, p)).join(',')})` :
@@ -229,11 +205,11 @@ const envVar2Ts = (ctx: Context, n: ast.EnvVar) =>
     n.filters.reduce((p, c) => `${literal2TS(c.name)}(${p})`,
         `(<string>process.env['${value2TS(ctx, n.key)}'])`);
 
-const list2TS = (ctx: Context, l: ast.List) =>
-    `[${l.elements.map(n => value2TS(ctx, n)).join(',')}]`;
+const list2TS = (ctx: Context, node: ast.List) =>
+    `[${node.elements.map(n => value2TS(ctx, n)).join(',')}]`;
 
-const dict2TS = (ctx: Context, d: ast.Dict) =>
-    flattenCodeStruct(ctx, structFromDict(ctx, d));
+const dict2TS = (ctx: Context, node: ast.Dict) =>
+    flattenCodeStruct(ctx, structFromDict(ctx, node));
 
 const literal2TS = (n: ast.Literal) =>
     (n instanceof ast.StringLiteral) ? `\`${n.value}\`` : n.value;

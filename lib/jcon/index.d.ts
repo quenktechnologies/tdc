@@ -1,21 +1,9 @@
 import * as ast from '@quenk/jcon/lib/ast';
 import { Future } from '@quenk/noni/lib/control/monad/future';
 import { Path } from '@quenk/noni/lib/io/file';
+import { SourceString, Code } from '../common/output';
+import { Imports } from '../common/imports';
 import { Context, Loader } from './context';
-/**
- * SourceText source.
- */
-export declare type SourceText = string;
-/**
- * Code output.
- */
-export declare type Code = string;
-/**
- * Imports map.
- */
-export interface Imports {
-    [key: string]: string;
-}
 /**
  * CodeStruct holds the Code for the final output of compilation in a structure
  * that preserves the nesting of the properties.
@@ -32,7 +20,7 @@ export declare const newContext: (path: Path, loader: Loader) => Context;
  *
  * The [[ast.File|File]] node is always the root node of the AST.
  */
-export declare const parse: (src: SourceText) => Future<ast.File>;
+export declare const parse: (src: SourceString) => Future<ast.File>;
 /**
  * compile a parsed file into TypeScript code.
  */
@@ -59,10 +47,6 @@ export declare const wrapDirectives: (ctx: Context, dirs: ast.Directive[], code:
  * pointer syntax) found in the list of directives provided.
  */
 export declare const getAllImports: (dirs: ast.Directive[]) => Imports;
-/**
- * flattenImports into a TypeScript string.
- */
-export declare const flattenImports: (ctx: Context, i: Imports) => Code;
 /**
  * file2TS converts the body of a parsed file into code.
  *

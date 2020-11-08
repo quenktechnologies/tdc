@@ -1,9 +1,7 @@
 import * as ast from '@quenk/rcl/lib/ast';
 import { Future } from '@quenk/noni/lib/control/monad/future';
-/**
- * TypeScript output.
- */
-export declare type TypeScript = string;
+import { Code } from './common/output';
+import { Imports } from './common/imports';
 /**
  * Loader loads the parsed contents of a RCL file
  * into memory.
@@ -14,15 +12,13 @@ export declare type Loader = (path: string) => Future<string>;
  */
 export declare type Parser = (src: string) => Future<ast.File>;
 /**
- * Imports map.
- */
-export interface Imports {
-    [key: string]: string | string[];
-}
-/**
  * Context compilation takes place in.
  */
 export interface Context {
+    /**
+     * locals is a list of variable names found in the compiled source.
+     */
+    locals: string[];
     /**
      * loader configured
      */
@@ -37,26 +33,29 @@ export interface Context {
  */
 export declare const newContext: (loader: Loader) => Context;
 /**
- * file2Imports extracts the imports for a File
+ * parse source text into an rcl File node.
  */
-export declare const file2Imports: (f: ast.File) => Imports;
+export declare const parse: (src: string) => Future<ast.File>;
 /**
- * imports2TS converts a map of imports to
- * the relevant TypeScript import blocks.
+ * compile some source text into Code code.
  */
-export declare const imports2TS: (i: Imports) => TypeScript;
+export declare const compile: (src: string, ctx: Context) => Future<Code>;
+/**
+ * getAllImports provides an Imports object containing all the imports found
+ * in a file based on detected module pointer syntax usage.
+ */
+export declare const getAllImports: (file: ast.File) => Imports;
 /**
  * file2TS transforms a file into a function for installing
  * routes.
  *
  * This writes only the function and not imports.
  */
-export declare const file2TS: (ctx: Context, f: ast.File) => Future<TypeScript>;
+export declare const file2TS: (ctx: Context, node: ast.File) => Future<Code>;
 /**
- * parse source text into an rcl File node.
+ * resolveIncludes found in a File node.
+ *
+ * This merges the contents of each [[ast.Include]] found into the passed
+ * [[ast.File]].
  */
-export declare const parse: (src: string) => Future<ast.File>;
-/**
- * compile some source text into TypeScript code.
- */
-export declare const compile: (src: string, ctx: Context) => Future<TypeScript>;
+export declare const resolveIncludes: (ctx: Context, node: ast.File) => Future<ast.File>;
