@@ -4,7 +4,7 @@
         "lib": ["ES2017", "DOM"],
         "noImplicitAny": true,
         "module": "commonjs",
-        "target": "es5",
+        "target": "ES2016",
         "rootDir": ".",
         "outDir": "../lib",
         "moduleResolution": "node",
