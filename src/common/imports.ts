@@ -1,7 +1,7 @@
 import { EOL } from 'os';
 
 import { Path } from '@quenk/noni/lib/io/file';
-import { uncapitalize, camelCase } from '@quenk/noni/lib/data/string';
+import { uncapitalize, camelcase } from '@quenk/noni/lib/data/string';
 import { reduce } from '@quenk/noni/lib/data/record';
 import { Code } from './output';
 
@@ -28,8 +28,8 @@ export interface Imports {
  * as a variable name.
  */
 export const normalize = (name: Name): Name =>
-    uncapitalize(camelCase(
-      name.replace(/[.]/g, 'dot').replace(/[^\w]/g, '_'))
+    uncapitalize(camelcase(
+        name.replace(/[.]/g, 'dot').replace(/[^\w]/g, '_'))
     );
 
 /**
