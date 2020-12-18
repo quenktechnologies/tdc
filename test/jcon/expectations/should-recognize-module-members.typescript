@@ -1,6 +1,7 @@
-import * as path from 'module/as/path'; 
+import * as moduleAsPath from 'module/as/path'; 
 import {Template} from @quenk/tendril/lib/app/module/template';
 
 export const template: Template<App> =
 {'id': `jcon`,
-'module': {'as': {'path': path.member}}}
+'app': {'dirs': {'self': `.`}},
+'module': {'as': {'path': moduleAsPath.member}}}

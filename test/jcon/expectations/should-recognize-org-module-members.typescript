@@ -1,6 +1,7 @@
-import * as either from '@quenk/noni/lib/data/either'; 
+import * as quenkNoniLibDataEither from '@quenk/noni/lib/data/either'; 
 import {Template} from @quenk/tendril/lib/app/module/template';
 
 export const template: Template<App> =
 {'id': `jcon`,
-'either': either.Either}
+'app': {'dirs': {'self': `.`}},
+'either': quenkNoniLibDataEither.Either}

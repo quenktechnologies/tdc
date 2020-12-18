@@ -1,7 +1,9 @@
-import * as one from 'other/one'; 
-import * as to from './path/to'; 
+import * as one from 'one'; 
+import * as dotPathTo from './path/to'; 
+import * as otherOne from 'other/one'; 
 import {Template} from @quenk/tendril/lib/app/module/template';
 
 export const template: Template<App> =
 {'id': `jcon`,
-'array': {'of': {'modules': [one.default,to.member(),one.one]}}}
+'app': {'dirs': {'self': `.`}},
+'array': {'of': {'modules': [one.default,dotPathTo.member(),otherOne.one]}}}

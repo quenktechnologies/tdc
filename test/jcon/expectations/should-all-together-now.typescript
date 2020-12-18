@@ -1,4 +1,4 @@
-import * as connector from 'path/to/connector'; 
+import * as pathToConnector from 'path/to/connector'; 
 import * as path from 'path'; 
 import * as os from 'os'; 
 import * as http from 'http'; 
@@ -7,9 +7,10 @@ import {Template} from @quenk/tendril/lib/app/module/template';
 
 export const template: Template<App> =
 {'id': (<string>process.env['ID']),
+'app': {'dirs': {'self': `.`},
+'connections': {'config': {'main': {'connector': pathToConnector.connect},
+'backup': {'connector': pathToConnector.backup(1,2,3)}}}},
 'name': {'first': `F`,
 'last': `L`},
-'app': {'connections': {'config': {'main': {'connector': connector.connect},
-'backup': {'connector': connector.backup(1,2,3)}}}},
 'modules': [path.default,os.default,http.default],
 'trap': trap.default()}

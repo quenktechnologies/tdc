@@ -1,8 +1,9 @@
-import * as tendrilConnectionMongodb from '@quenk/tendril-connection-mongodb'; 
-import * as mongo from '@quenk/mongo'; 
+import * as quenkTendrilConnectionMongodb from '@quenk/tendril-connection-mongodb'; 
+import * as quenkMongo from '@quenk/mongo'; 
 import {Template} from @quenk/tendril/lib/app/module/template';
 
 export const template: Template<App> =
 {'id': `jcon`,
-'connections': {'main': {'connector': tendrilConnectionMongodb.connector,
-'options': [mongo.url]}}}
+'app': {'dirs': {'self': `.`}},
+'connections': {'main': {'connector': quenkTendrilConnectionMongodb.connector,
+'options': [quenkMongo.url]}}}

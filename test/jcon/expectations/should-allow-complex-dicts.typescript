@@ -1,9 +1,10 @@
-import * as connector from 'path/to/connector'; 
+import * as pathToConnector from 'path/to/connector'; 
 import {Template} from @quenk/tendril/lib/app/module/template';
 
 export const template: Template<App> =
 {'id': `jcon`,
-'complex': {'dict': {'main': {'connector': connector.connector,
+'app': {'dirs': {'self': `.`}},
+'complex': {'dict': {'main': {'connector': pathToConnector.connector,
 'options': {'collection': `websessions`,
 'autoRemove': `interval`,
 'autoRemoveInterval': (<string>process.env['AUTO_REMOVE_INTERVAL'])}}}}}

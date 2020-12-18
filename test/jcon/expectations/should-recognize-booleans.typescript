@@ -3,5 +3,6 @@ import {Template} from @quenk/tendril/lib/app/module/template';
 
 export const template: Template<App> =
 {'id': `jcon`,
+'app': {'dirs': {'self': `.`}},
 'testTrue': true,
 'testFalse': false}

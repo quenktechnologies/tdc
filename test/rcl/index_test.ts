@@ -54,7 +54,8 @@ const tests = {
     'should work': `
   %include "a"
   %include "b"
-  %import check,create,update,delete from "somewhere"
+  %set check = somewhere#check
+  %set delete = somewhere#delete
 
   -- This should work.
   DELETE /:id check delete
