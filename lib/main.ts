@@ -33,7 +33,15 @@ const expand = (cwd: Path, path: Path) => isAbsolute(path) ?
     path :
     join(cwd, path);
 
-const main = () => exec(expand(process.cwd(), opts.module), opts)
-    .fork(e => console.error(`Error occured: ${e.message}`), noop);
+const main = () => {
+
+  exec(expand(process.cwd(), opts.module), opts)
+    .catch(e =>  {
+    
+      console.error(`Error occured: ${e.message}`);
+      process.exit(1);
+
+    })
+  .fork();
 
 main();
