@@ -1,9 +1,11 @@
 #! /usr/bin/env node
 import * as docopt from 'docopt';
-import { Path } from '@quenk/noni/lib/io/file';
-import { noop } from '@quenk/noni/lib/data/function';
-import { Arguments, exec, args2Opts } from './cli';
+
 import { basename, isAbsolute, join } from 'path';
+
+import { Path } from '@quenk/noni/lib/io/file';
+
+import { Arguments, exec, args2Opts } from './cli';
 
 const BIN = basename(__filename);
 
@@ -36,14 +38,13 @@ const expand = (cwd: Path, path: Path) => isAbsolute(path) ?
 const main = () => {
 
     exec(expand(process.cwd(), opts.module), opts)
-        .catch(e => {
+        .fork(e => {
 
             console.error(`Error occured: ${e.message}`);
             process.exit(1);
 
-        })
-        .fork();
+        });
 
 }
 
-    main();
+main();
