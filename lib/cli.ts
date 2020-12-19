@@ -246,6 +246,9 @@ export const compile = ([conf, routes]: ParsedFiles, opts: Options, path: Path) 
         let combinedCode = [
 
             toCode(imports),
+
+            `//@ts-ignore: 6133`,
+            `import {System} from '@quenk/potoo/lib/actor/system';`,
             `//@ts-ignore: 6133`,
             `import * as _json from '@quenk/noni/lib/data/jsonx';`,
             `//@ts-ignore: 6133`,
@@ -254,9 +257,12 @@ export const compile = ([conf, routes]: ParsedFiles, opts: Options, path: Path) 
             `import {Module} from '@quenk/tendril/lib/app/module';`,
             `//@ts-ignore: 6133`,
             `import {Request} from '@quenk/tendril/lib/app/api/request;'`,
+            `//@ts-ignore: 6133`,
+            `import {RouteConf as $RouteConf} from '@quenk/tendril/lib/app/module';`,
             getMainImport(opts),
             ctx.EOL,
-            `export const template = (_app: App): Template<App> => ` +
+            `//@ts-ignore: 6133`,
+            `export const template = ($app: App): Template => ` +
             `(${ctx.EOL} ${jconCode})`
 
         ].join(EOL);
@@ -295,7 +301,7 @@ const addCreate = (f: JCONFile): JCONFile => {
 
     let prop = new jconAst.Property(path,
         new jconAst.Function(`${EOL}//@ts-ignore: 6133 ${EOL}` +
-            `(_app:App) => new Module(_app)`, loc), loc);
+            `(s:System) => new Module(<App>s)`, loc), loc);
 
     f.directives.unshift(prop);
 

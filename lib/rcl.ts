@@ -151,9 +151,9 @@ export const file2TS = (ctx: Context, node: ast.File): Future<Code> =>
         let nodes = file.body.filter((n: ast.Node) =>
             !(n instanceof ast.Comment));
 
-        let code = [`($module:Module) => {${EOL}${EOL}`];
+        let code = [`//@ts-ignore: 6133`, EOL, `($module:Module) => {${EOL}${EOL}`];
 
-        code.push('let $routes = [];', EOL);
+        code.push('let $routes:$RouteConf[] = [];', EOL);
 
         nodes.forEach((bodyNode: ast.Node) => {
 
