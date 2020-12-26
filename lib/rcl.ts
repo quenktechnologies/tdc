@@ -245,7 +245,7 @@ const route2TS = (node: ast.Route): Code => {
 
     let filters = node.filters.map(f => {
 
-        let out = value2TS(f);
+        let out = filter2TS(f);
 
         if (f instanceof ast.FunctionCall) {
 
@@ -299,17 +299,54 @@ const value2TS = (node: ast.Expression): Code => <Code>match(node)
     .caseOf(ast.QualifiedIdentifier, anyIdentifier2TS)
     .end();
 
+const filter2TS = (filter: ast.Filter): Code => {
+
+    if (filter instanceof ast.QualifiedIdentifier) {
+
+        // These should be method/function calls and should be bound.
+
+        let method = value2TS(filter);
+      let path = method.split('.');
+        let target = path.slice(0, path.length - 1).join('.');
+
+        return `${method}.bind(${target})`;
+
+    } else {
+
+        return value2TS(filter);
+
+    }
+
+}
+
 const functionCall2TS = ({ id, args }: ast.FunctionCall): Code => {
 
-    let name = (id instanceof ast.ModuleMember) ?
-        modueMember2TS(id) : anyIdentifier2TS(id);
+    let isMember = (id instanceof ast.ModuleMember);
+
+    let path = isMember ?
+        modueMember2TS(<ast.ModuleMember>id) :
+        anyIdentifier2TS(<ast.AnyIdentifier>id);
+
+    let parts = path.split('.');
 
     let argsStr = args.map(value2TS).join(',');
-    let ret = `${name}(${argsStr})`;
-    let target = tail(name.split('.'));
-    let isConstructor = target[0] === target[0].toUpperCase();
 
-    return isConstructor ? `new ${ret}` : ret;
+    if ((!isMember && parts.length > 1) || (isMember && parts.length > 2)) {
+
+        let target = parts.slice(0, parts.length - 1).join('.');
+
+        let isConstructor = tail(parts) === tail(parts).toUpperCase();
+
+        return isConstructor ? `new ${path}(${argsStr})` :
+            `${path}.call(${target}, [${argsStr}])`;
+
+    } else {
+
+        let isConstructor = tail(parts)[0] === tail(parts)[0].toUpperCase();
+
+        return isConstructor ? `new ${path}(${argsStr})` : `${path}(${argsStr})`;
+
+    }
 
 }
 

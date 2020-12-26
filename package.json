@@ -25,7 +25,7 @@
     "@quenk/must": "^1.0.4",
     "@quenk/test": "^2.3.0",
     "@types/mocha": "^8.2.0",
-    "@types/node": "^14.14.14",
+    "@types/node": "^14.14.16",
     "mocha": "^8.2.1",
     "ts-node": "^9.1.1",
     "typescript": "^4.1.3"
