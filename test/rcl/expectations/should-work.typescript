@@ -1,6 +1,7 @@
+//@ts-ignore: 6133
 ($module:Module) => {
 
-let $routes = [];
+let $routes:$RouteConf[] = [];
 
 $routes.push({
 method:'get',

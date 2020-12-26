@@ -1,0 +1,11 @@
+//@ts-ignore: 6133
+($module:Module) => {
+
+let $routes:$RouteConf[] = [];
+
+$routes.push({
+method:'get',
+path:'/',
+filters:[ctl.search.bind(ctl)]});
+return $routes;
+}

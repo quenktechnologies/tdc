@@ -60,7 +60,13 @@ const tests = {
   -- This should work.
   DELETE /:id check delete
   GET / "index.html"
-    `
+    `,
+
+    'should recognize module members that are constructors':
+        '%set ctl = ./handlers#Resource("main")',
+
+    'should recognize method calls':        'GET / ctl.search'
+
 };
 
 describe('rcl', () => {
@@ -87,4 +93,3 @@ describe('rcl', () => {
     });
 
 });
-

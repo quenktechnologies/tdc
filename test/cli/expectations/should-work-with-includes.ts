@@ -1,5 +1,7 @@
 import * as orgControllers from '@org/controllers'; 
 //@ts-ignore: 6133
+import {System} from '@quenk/potoo/lib/actor/system';
+//@ts-ignore: 6133
 import * as _json from '@quenk/noni/lib/data/jsonx';
 //@ts-ignore: 6133
 import {Template} from '@quenk/tendril/lib/app/module/template';
@@ -7,22 +9,26 @@ import {Template} from '@quenk/tendril/lib/app/module/template';
 import {Module} from '@quenk/tendril/lib/app/module';
 //@ts-ignore: 6133
 import {Request} from '@quenk/tendril/lib/app/api/request;'
+//@ts-ignore: 6133
+import {RouteConf as $RouteConf} from '@quenk/tendril/lib/app/module';
 import {App as App} from '@quenk/tendril/lib/app';
 
 
 
-export const template = (_app: App): Template<App> => (
+//@ts-ignore: 6133
+export const template = ($app: App): Template => (
  {'id': `should-work-with-includes`,
 'app': {'dirs': {'self': `/test/cli/tests/should-work-with-includes`},
-'routes': ($module:Module) => {
+'routes': //@ts-ignore: 6133
+($module:Module) => {
 
-let $routes = [];
+let $routes:$RouteConf[] = [];
 
 $routes.push({
 method:'get',
 path:'/',
 filters:[$module.show(`index.html`, {})]});
-let ctl = new orgControllers.User(`bar`);
+let ctl = orgControllers.User(`bar`);
 
 $routes.push({
 method:'get',
@@ -37,14 +43,14 @@ filters:[// @ts-ignore: 6133
                  //@ts-ignore: 6133
                  let $body = _json.Value = $request.body;
 
-                 return ctl.serveData(`r`);
+                 return ctl.serveData.call(ctl, [`r`]);
         }]});
 
 $routes.push({
 method:'delete',
 path:'/',
 filters:[$module.show(`404.html`, {})]});
-ctl = new orgControllers.Admin(`foo`);
+ctl = orgControllers.Admin(`foo`);
 
 $routes.push({
 method:'post',
@@ -59,10 +65,10 @@ filters:[// @ts-ignore: 6133
                  //@ts-ignore: 6133
                  let $body = _json.Value = $request.body;
 
-                 return ctl.saveData(`r`);
+                 return ctl.saveData.call(ctl, [`r`]);
         }]});
 return $routes;
 }},
 'create': 
 //@ts-ignore: 6133 
-(_app:App) => new Module(_app)})
+(s:System) => new Module(<App>s)})
