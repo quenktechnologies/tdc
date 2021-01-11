@@ -23,9 +23,9 @@
   },
   "devDependencies": {
     "@quenk/must": "^1.0.4",
-    "@quenk/test": "^2.3.0",
+    "@quenk/test": "^2.4.0",
     "@types/mocha": "^8.2.0",
-    "@types/node": "^14.14.16",
+    "@types/node": "^14.14.20",
     "mocha": "^8.2.1",
     "ts-node": "^9.1.1",
     "typescript": "^4.1.3"
