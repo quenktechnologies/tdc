@@ -32,6 +32,7 @@ export const FILE_ROUTE = 'routes';
 export const FILE_INDEX = 'index.ts';
 export const FILE_START = 'start.ts';
 export const DEFAULT_MAIN = '@quenk/tendril/lib/app#App';
+export const TDC_MERGE_COMMENT = '/*tdc-output*/';
 
 type ParsedFiles = [JCONFile, RCLFile];
 
@@ -338,11 +339,27 @@ const isIgnored = (opts: Options, path: Path): boolean =>
         c.test(path), <boolean>false);
 
 /**
- * writeIndexFile writes out compile typescript to 
- * the index file of a path.
+ * writeIndexFile writes out compiled typescript to the index file of a path.
+ *
+ * If the file already exists we attempt to merge it with the output via 
+ * the TDC_MERGE_COMMENT
  */
-export const writeIndexFile = (path: Path, ts: TypeScript) =>
-    writeTextFile(`${path}/${FILE_INDEX}`, ts);
+export const writeIndexFile = (path: Path, ts: TypeScript) => 
+  doFuture(function*() { 
+
+    let indexFile = `${path}/${FILE_INDEX}`; 
+
+    if(yield isFile(indexFile)) {
+
+      let contents = yield readTextFile(indexFile);
+
+      ts = ts.replace(TDC_MERGE_COMMENT,  contents);
+
+    }
+
+   return writeTextFile(indexFile, ts);
+
+});
 
 /**
  * writeStartFile writes out the start script to a destination/
