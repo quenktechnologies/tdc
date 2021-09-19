@@ -7,7 +7,8 @@ export declare const FILE_ROUTE = "routes";
 export declare const FILE_INDEX = "index.ts";
 export declare const FILE_START = "start.ts";
 export declare const DEFAULT_MAIN = "@quenk/tendril/lib/app#App";
-export declare const TDC_MERGE_COMMENT = "/*tdc-output*/";
+export declare const TDC_MERGE_IMPORTS: RegExp;
+export declare const TDC_MERGE_EXPORTS: RegExp;
 declare type ParsedFiles = [JCONFile, RCLFile];
 declare type TypeScript = string;
 declare type JCONFile = jconAst.File;
@@ -35,7 +36,7 @@ export declare const args2Opts: (args: Arguments) => Options;
 /**
  * startTemplate provides the contant of the start.js file.
  */
-export declare const startTemplate: (opts: Options) => string;
+export declare const startTemplate: (opts: Options) => [TypeScript, TypeScript];
 /**
  * isModule tests whether a directory is a module or not.
  *
@@ -55,7 +56,7 @@ export declare const getTDCFiles: (path: Path) => Future<ParsedFiles>;
 /**
  * @private
  */
-export declare const compile: ([conf, routes]: ParsedFiles, opts: Options, path: Path) => Future<string>;
+export declare const compile: ([conf, routes]: ParsedFiles, opts: Options, path: Path) => Future<[string, string]>;
 /**
  * execR executes recursively on a path.
  *
@@ -69,7 +70,7 @@ export declare const execR: (path: Path, opts: Options) => Future<void[]>;
  * If the file already exists we attempt to merge it with the output via
  * the TDC_MERGE_COMMENT
  */
-export declare const writeIndexFile: (path: Path, ts: TypeScript) => Future<void>;
+export declare const writeIndexFile: (path: Path, ts: [TypeScript, TypeScript]) => Future<void>;
 /**
  * writeStartFile writes out the start script to a destination/
  */

@@ -32,6 +32,8 @@ export const FILE_ROUTE = 'routes';
 export const FILE_INDEX = 'index.ts';
 export const FILE_START = 'start.ts';
 export const DEFAULT_MAIN = '@quenk/tendril/lib/app#App';
+export const TDC_MERGE_IMPORTS = /\/\*\s*tdc-output-imports\s*\*/;
+export const TDC_MERGE_EXPORTS = /\/\*\s*tdc-output-exports\s*\*/;
 
 type ParsedFiles = [JCONFile, RCLFile];
 
@@ -117,11 +119,15 @@ export const args2Opts = (args: Arguments): Options => ({
 /**
  * startTemplate provides the contant of the start.js file.
  */
-export const startTemplate = (opts: Options) =>
-    getMainImport(opts) +
-    `import {template} from './';${EOL}${EOL}` +
-    `let app = new App(template);${EOL}` +
-    `app.start().fork(e => { throw e; }, ()=>{});`;
+export const startTemplate = (opts: Options) : [TypeScript,TypeScript]=> [
+    [getMainImport(opts) +
+        `import {template} from './';${EOL}`
+    ].join(EOL),
+    [
+        `let app = new App(template);${EOL}` +
+        `app.start().fork(e => { throw e; }, ()=>{});`
+    ].join(EOL)
+];
 
 const getMainImport = (opts: Options) => {
 
@@ -225,7 +231,7 @@ const getParsedFile = <A>(path: Path, parser: Parser<A>): Future<A> =>
  * @private
  */
 export const compile = ([conf, routes]: ParsedFiles, opts: Options, path: Path) =>
-    doFuture<TypeScript>(function*() {
+    doFuture<[TypeScript, TypeScript]>(function*() {
 
         let ctx = newContext(opts.rootDir, path);
 
@@ -243,31 +249,33 @@ export const compile = ([conf, routes]: ParsedFiles, opts: Options, path: Path) 
 
         let jconCode = jcon.file2TS(ctx, jconTree);
 
-        let combinedCode = [
+        return pure([
+            [
 
-            toCode(imports),
+                toCode(imports),
 
-            `//@ts-ignore: 6133`,
-            `import {System} from '@quenk/potoo/lib/actor/system';`,
-            `//@ts-ignore: 6133`,
-            `import * as _json from '@quenk/noni/lib/data/jsonx';`,
-            `//@ts-ignore: 6133`,
-            `import {Template} from '@quenk/tendril/lib/app/module/template';`,
-            `//@ts-ignore: 6133`,
-            `import {Module} from '@quenk/tendril/lib/app/module';`,
-            `//@ts-ignore: 6133`,
-            `import {Request} from '@quenk/tendril/lib/app/api/request;'`,
-            `//@ts-ignore: 6133`,
-            `import {RouteConf as $RouteConf} from '@quenk/tendril/lib/app/module';`,
-            getMainImport(opts),
-            ctx.EOL,
-            `//@ts-ignore: 6133`,
-            `export const template = ($app: App): Template => ` +
-            `(${ctx.EOL} ${jconCode})`
+                `//@ts-ignore: 6133`,
+                `import {System} from '@quenk/potoo/lib/actor/system';`,
+                `//@ts-ignore: 6133`,
+                `import * as _json from '@quenk/noni/lib/data/jsonx';`,
+                `//@ts-ignore: 6133`,
+                `import {Template} from '@quenk/tendril/lib/app/module/template';`,
+                `//@ts-ignore: 6133`,
+                `import {Module} from '@quenk/tendril/lib/app/module';`,
+                `//@ts-ignore: 6133`,
+                `import {Request} from '@quenk/tendril/lib/app/api/request;'`,
+                `//@ts-ignore: 6133`,
+                `import {RouteConf as $RouteConf} from '@quenk/tendril/lib/app/module';`,
+                getMainImport(opts),
+                ctx.EOL
+            ].join(ctx.EOL),
 
-        ].join(EOL);
+            [`//@ts-ignore: 6133`,
+                `export const template = ($app: App): Template => ` +
+                `(${ctx.EOL} ${jconCode})`
 
-        return pure(combinedCode);
+            ].join(EOL)
+        ]);
 
     });
 
@@ -338,14 +346,47 @@ const isIgnored = (opts: Options, path: Path): boolean =>
         c.test(path), <boolean>false);
 
 /**
- * writeIndexFile writes out compile typescript to 
- * the index file of a path.
+ * writeIndexFile writes out compiled typescript to the index file of a path.
+ *
+ * If the file already exists we attempt to merge it with the output via 
+ * the TDC_MERGE_COMMENT
  */
-export const writeIndexFile = (path: Path, ts: TypeScript) =>
-    writeTextFile(`${path}/${FILE_INDEX}`, ts);
+export const writeIndexFile = (path: Path, ts: [TypeScript, TypeScript]) =>
+    writeOutput(`${path}/${FILE_INDEX}`, ts);
 
 /**
  * writeStartFile writes out the start script to a destination/
  */
 export const writeStartFile = (path: Path, opts: Options): Future<void> =>
-    writeTextFile(`${path}/${FILE_START}`, startTemplate(opts));
+    writeOutput(`${path}/${FILE_START}`, startTemplate(opts));
+
+/**
+ * writeOutput writes out compiled typescript to the specified path.
+ *
+ * If the file already exists we attempt to merge it with the output via 
+ * the TDC_MERGE_IMPORTS and TDC_MERGE_EXPORTS comment.
+ */
+const writeOutput = (path: Path, [imports, exports]: [TypeScript, TypeScript]) =>
+    doFuture(function*() {
+
+        let ts = '';
+
+        if (yield isFile(path)) {
+
+            let contents = yield readTextFile(path);
+
+            contents = contents.replace(TDC_MERGE_IMPORTS, imports);
+
+            contents = contents.replace(TDC_MERGE_EXPORTS, exports);
+
+            ts = contents;
+
+        } else {
+
+            ts = [imports, exports].join();
+
+        }
+
+        return writeTextFile(path, ts);
+
+    });
