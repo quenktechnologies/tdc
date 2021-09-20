@@ -32,8 +32,8 @@ export const FILE_ROUTE = 'routes';
 export const FILE_INDEX = 'index.ts';
 export const FILE_START = 'start.ts';
 export const DEFAULT_MAIN = '@quenk/tendril/lib/app#App';
-export const TDC_MERGE_IMPORTS = /\/\*\s*tdc-output-imports\s*\*/;
-export const TDC_MERGE_EXPORTS = /\/\*\s*tdc-output-exports\s*\*/;
+export const TDC_MERGE_IMPORTS = /\/\*\s*tdc-output-imports\s*\*\//;
+export const TDC_MERGE_EXPORTS = /\/\*\s*tdc-output-exports\s*\*\//;
 
 type ParsedFiles = [JCONFile, RCLFile];
 
@@ -366,7 +366,7 @@ export const writeStartFile = (path: Path, opts: Options): Future<void> =>
  * If the file already exists we attempt to merge it with the output via 
  * the TDC_MERGE_IMPORTS and TDC_MERGE_EXPORTS comment.
  */
-const writeOutput = (path: Path, [imports, exports]: [TypeScript, TypeScript]) =>
+const writeOutput = (path: Path, [iports, eports]: [TypeScript, TypeScript]) =>
     doFuture(function*() {
 
         let ts = '';
@@ -375,15 +375,15 @@ const writeOutput = (path: Path, [imports, exports]: [TypeScript, TypeScript]) =
 
             let contents = yield readTextFile(path);
 
-            contents = contents.replace(TDC_MERGE_IMPORTS, imports);
+            contents = contents.replace(TDC_MERGE_IMPORTS, iports);
 
-            contents = contents.replace(TDC_MERGE_EXPORTS, exports);
+            contents = contents.replace(TDC_MERGE_EXPORTS, eports);
 
             ts = contents;
 
         } else {
 
-            ts = [imports, exports].join('');
+            ts = [iports, eports].join('');
 
         }
 
