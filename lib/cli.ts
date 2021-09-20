@@ -119,7 +119,7 @@ export const args2Opts = (args: Arguments): Options => ({
 /**
  * startTemplate provides the contant of the start.js file.
  */
-export const startTemplate = (opts: Options) : [TypeScript,TypeScript]=> [
+export const startTemplate = (opts: Options): [TypeScript, TypeScript] => [
     [getMainImport(opts) +
         `import {template} from './';${EOL}`
     ].join(EOL),
@@ -383,7 +383,7 @@ const writeOutput = (path: Path, [imports, exports]: [TypeScript, TypeScript]) =
 
         } else {
 
-            ts = [imports, exports].join();
+            ts = [imports, exports].join('');
 
         }
 
