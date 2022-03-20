@@ -139,17 +139,26 @@ export const getAllImports = (dirs: ast.Directive[]): Imports =>
 
 const addImports = (imps: Imports, node: ast.Value): Imports => {
 
-    if (node instanceof ast.Member)
-        return set(normalize(node.module.module), node.module.module, imps);
+    if (node instanceof ast.Member) {
 
-    else if (node instanceof ast.List)
+        imps = set(normalize(node.module.module), node.module.module, imps);
+
+        return node.parameters.reduce((prev, param) =>
+            addImports(prev, param), imps);
+
+    } else if (node instanceof ast.List) {
+
         return addImportsInList(imps, node);
 
-    else if (node instanceof ast.Dict)
+    } else if (node instanceof ast.Dict) {
+
         return addImportsInDict(imps, node);
 
-    else
+    } else {
+
         return imps;
+
+    }
 
 }
 
@@ -178,12 +187,12 @@ export const file2TS = (ctx: Context, f: ast.File): Code => {
  * value2TS transforms one of the valid value nodes into a TypeScript string.
  */
 export const value2TS = (ctx: Context, n: ast.Value): Code => <Code>match(n)
-    .caseOf(ast.Member, (n:ast.Member) => member2TS(ctx, n))
-    .caseOf(ast.Var, (n:ast.Var) => var2TS(ctx, n))
-    .caseOf(ast.EnvVar, (n:ast.EnvVar) => envVar2Ts(ctx, n))
-    .caseOf(ast.List, (n:ast.List) => list2TS(ctx, n))
+    .caseOf(ast.Member, (n: ast.Member) => member2TS(ctx, n))
+    .caseOf(ast.Var, (n: ast.Var) => var2TS(ctx, n))
+    .caseOf(ast.EnvVar, (n: ast.EnvVar) => envVar2Ts(ctx, n))
+    .caseOf(ast.List, (n: ast.List) => list2TS(ctx, n))
     .caseOf(ast.Dict, (n: ast.Dict) => dict2TS(ctx, n))
-    .caseOf(ast.Function, (n:ast.Function) => n.body)
+    .caseOf(ast.Function, (n: ast.Function) => n.body)
     .caseOf(ast.StringLiteral, literal2TS)
     .caseOf(ast.NumberLiteral, literal2TS)
     .caseOf(ast.BooleanLiteral, literal2TS)

@@ -6,6 +6,6 @@ let $routes:$RouteConf[] = [];
 $routes.push({
 method:'get',
 path:'/',
-filters:[ctl.search.bind(ctl)],{}});
+filters:[ctl.search.bind(ctl)],tags:{}});
 return $routes;
 }

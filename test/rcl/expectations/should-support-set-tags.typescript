@@ -6,6 +6,6 @@ let $routes:$RouteConf[] = [];
 $routes.push({
 method:'get',
 path:'/',
-filters:[main],{admin: `peter` }});
+filters:[main],tags:{admin: `peter` }});
 return $routes;
 }

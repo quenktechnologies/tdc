@@ -26,7 +26,7 @@ let $routes:$RouteConf[] = [];
 $routes.push({
 method:'get',
 path:'/',
-filters:[$module.show(`index.html`, {})],{}});
+filters:[$module.show(`index.html`, {})],tags:{}});
 let ctl = new orgControllers.User(`bar`);
 
 $routes.push({
@@ -43,12 +43,12 @@ filters:[// @ts-ignore: 6133
                  let $body = _json.Value = $request.body;
 
                  return ctl.serveData.call(ctl, [`r`]);
-        }],{}});
+        }],tags:{}});
 
 $routes.push({
 method:'delete',
 path:'/',
-filters:[$module.show(`404.html`, {})],{}});
+filters:[$module.show(`404.html`, {})],tags:{}});
 ctl = new orgControllers.Admin(`foo`);
 
 $routes.push({
@@ -65,7 +65,7 @@ filters:[// @ts-ignore: 6133
                  let $body = _json.Value = $request.body;
 
                  return ctl.saveData.call(ctl, [`r`]);
-        }],{}});
+        }],tags:{}});
 return $routes;
 }},
 'create': 

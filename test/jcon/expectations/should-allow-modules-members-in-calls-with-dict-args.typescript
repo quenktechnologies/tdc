@@ -1,0 +1,10 @@
+import * as devcaribServerLibFiltersQuery from '@devcarib/server/lib/filters/query'; 
+import * as miaFilterPolicies from '@mia/filter-policies'; 
+import * as miaFields from '@mia/fields'; 
+import {Template} from @quenk/tendril/lib/app/module/template';
+
+export const template: Template<App> =
+{'id': `jcon`,
+'app': {'dirs': {'self': `.`},
+'filters': [devcaribServerLibFiltersQuery.compile({'policies': miaFilterPolicies.policiesEnabled,
+'fields': miaFields.fields})]}}
