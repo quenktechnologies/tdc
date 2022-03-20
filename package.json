@@ -1,6 +1,6 @@
 {
   "name": "@quenk/tdc",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "CLI tool for building tendril projects.",
   "main": "index.js",
   "bin": {
