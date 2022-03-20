@@ -6,28 +6,28 @@ let $routes:$RouteConf[] = [];
 $routes.push({
 method:'get',
 path:'/',
-filters:[[]$module.show(`index`, {})]});
+filters:[$module.show(`index`, {})],{}});
 
 $routes.push({
 method:'put',
 path:'/:id',
-filters:[check,update[]]});
+filters:[check,update],{}});
 
 $routes.push({
 method:'post',
 path:'/',
-filters:[check,create[]]});
+filters:[check,create],{}});
 let check = somewhere.check;
 let delete = somewhere.delete;
 
 $routes.push({
 method:'delete',
 path:'/:id',
-filters:[check,delete[]]});
+filters:[check,delete],{}});
 
 $routes.push({
 method:'get',
 path:'/',
-filters:[[]$module.show(`index.html`, {})]});
+filters:[$module.show(`index.html`, {})],{}});
 return $routes;
 }
