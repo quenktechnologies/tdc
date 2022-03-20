@@ -275,7 +275,7 @@ const route2TS = (node: ast.Route): Code => {
     let tags = node.tags.map(tag =>
         `${value2TS(tag.name)}: ${value2TS(tag.value)} `);
 
-    code.push('[', tags.join(`,${EOL}`), ']')
+    code.push('{', tags.join(`,${EOL}`), '}')
 
     if (node.view)
         code.push(view2TS(node.view));
