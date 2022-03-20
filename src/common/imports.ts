@@ -36,5 +36,5 @@ export const normalize = (name: Name): Name =>
  * toCode converts an Imports object into a TypeScript string.
  */
 export const toCode = (imps: Imports, eol = EOL): Code =>
-    reduce(imps, [], (p, c, k) =>
+    reduce(imps, [], (p:string[], c, k) =>
         [...p, `import * as ${k} from '${c}'; `]).join(eol);

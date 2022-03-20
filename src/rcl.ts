@@ -272,6 +272,11 @@ const route2TS = (node: ast.Route): Code => {
 
     code.push(filters);
 
+    let tags = node.tags.map(tag =>
+        `${value2TS(tag.name)}: ${value2TS(tag.value)} `);
+
+    code.push('[', tags.join(`,${EOL}`), ']')
+
     if (node.view)
         code.push(view2TS(node.view));
 
@@ -283,7 +288,7 @@ const route2TS = (node: ast.Route): Code => {
 
 const view2TS = (view?: ast.View) => (view) ?
     `$module.show(${literal2TS(view.view)}, ` +
-    `${dict2TS(view.context)})` :
+    `${dict2TS(<ast.Dict>view.context)})` :
     '';
 
 const value2TS = (node: ast.Expression): Code => <Code>match(node)
@@ -306,7 +311,7 @@ const filter2TS = (filter: ast.Filter): Code => {
         // These should be method/function calls and should be bound.
 
         let method = value2TS(filter);
-      let path = method.split('.');
+        let path = method.split('.');
         let target = path.slice(0, path.length - 1).join('.');
 
         return `${method}.bind(${target})`;
