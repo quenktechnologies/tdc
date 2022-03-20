@@ -65,7 +65,13 @@ const tests = {
     'should recognize module members that are constructors':
         '%set ctl = ./handlers#Resource("main")',
 
-    'should recognize method calls':        'GET / ctl.search'
+    'should recognize method calls':        'GET / ctl.search',
+
+    'should support positive tags': 'GET / main +admin',
+
+    'should support set tags': 'GET / main +admin="peter"',
+
+    'should support negative tags': 'GET / main -admin'
 
 };
 

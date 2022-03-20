@@ -102,7 +102,7 @@ const onParseFileError = (path: Path) => (e: Error): Future<ast.File> => raise(
 export const flattenCodeStruct =
     (ctx: Context, rec: CodeStruct): Code => {
 
-        let tokens = reduce(rec, [], (p, c, k) => {
+        let tokens = reduce(rec, [], (p: string[], c, k) => {
 
             let value = isObject(c) ? flattenCodeStruct(ctx, c) : c;
 
@@ -178,12 +178,12 @@ export const file2TS = (ctx: Context, f: ast.File): Code => {
  * value2TS transforms one of the valid value nodes into a TypeScript string.
  */
 export const value2TS = (ctx: Context, n: ast.Value): Code => <Code>match(n)
-    .caseOf(ast.Member, n => member2TS(ctx, n))
-    .caseOf(ast.Var, n => var2TS(ctx, n))
-    .caseOf(ast.EnvVar, n => envVar2Ts(ctx, n))
-    .caseOf(ast.List, n => list2TS(ctx, n))
-    .caseOf(ast.Dict, n => dict2TS(ctx, n))
-    .caseOf(ast.Function, n => n.body)
+    .caseOf(ast.Member, (n:ast.Member) => member2TS(ctx, n))
+    .caseOf(ast.Var, (n:ast.Var) => var2TS(ctx, n))
+    .caseOf(ast.EnvVar, (n:ast.EnvVar) => envVar2Ts(ctx, n))
+    .caseOf(ast.List, (n:ast.List) => list2TS(ctx, n))
+    .caseOf(ast.Dict, (n: ast.Dict) => dict2TS(ctx, n))
+    .caseOf(ast.Function, (n:ast.Function) => n.body)
     .caseOf(ast.StringLiteral, literal2TS)
     .caseOf(ast.NumberLiteral, literal2TS)
     .caseOf(ast.BooleanLiteral, literal2TS)

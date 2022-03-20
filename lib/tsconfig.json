@@ -1,20 +1,23 @@
 {
     "compilerOptions": {
         "baseUrl": "src",
-        "lib": ["ES2017", "DOM"],
-        "noImplicitAny": true,
+        "lib": ["es5", "ES2015", "DOM"],
         "module": "commonjs",
-        "target": "ES2016",
+        "target": "es6",
         "rootDir": ".",
         "outDir": "../lib",
         "moduleResolution": "node",
         "allowUnreachableCode": true,
         "noUnusedParameters": true,
         "noUnusedLocals": true,
+        "skipLibCheck": true,
+        "noImplicitAny": true,
         "sourceMap": true,
         "declaration": true,
+        "strict": true,
         "types": ["node"],
         "typeRoots": ["node_modules/@types"]
     },
     "exclude": ["node_modules"]
+
 }

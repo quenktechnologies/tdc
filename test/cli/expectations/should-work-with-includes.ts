@@ -14,8 +14,7 @@ import {RouteConf as $RouteConf} from '@quenk/tendril/lib/app/module';
 import {App as App} from '@quenk/tendril/lib/app';
 
 
-
-//@ts-ignore: 6133
+,//@ts-ignore: 6133
 export const template = ($app: App): Template => (
  {'id': `should-work-with-includes`,
 'app': {'dirs': {'self': `/test/cli/tests/should-work-with-includes`},
@@ -27,8 +26,8 @@ let $routes:$RouteConf[] = [];
 $routes.push({
 method:'get',
 path:'/',
-filters:[$module.show(`index.html`, {})]});
-let ctl = orgControllers.User(`bar`);
+filters:[[]$module.show(`index.html`, {})]});
+let ctl = new orgControllers.User(`bar`);
 
 $routes.push({
 method:'get',
@@ -44,13 +43,13 @@ filters:[// @ts-ignore: 6133
                  let $body = _json.Value = $request.body;
 
                  return ctl.serveData.call(ctl, [`r`]);
-        }]});
+        }[]]});
 
 $routes.push({
 method:'delete',
 path:'/',
-filters:[$module.show(`404.html`, {})]});
-ctl = orgControllers.Admin(`foo`);
+filters:[[]$module.show(`404.html`, {})]});
+ctl = new orgControllers.Admin(`foo`);
 
 $routes.push({
 method:'post',
@@ -66,7 +65,7 @@ filters:[// @ts-ignore: 6133
                  let $body = _json.Value = $request.body;
 
                  return ctl.saveData.call(ctl, [`r`]);
-        }]});
+        }[]]});
 return $routes;
 }},
 'create': 
