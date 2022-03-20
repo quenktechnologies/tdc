@@ -278,6 +278,8 @@ const route2TS = (node: ast.Route): Code => {
 
     code.push('],');
 
+  code.push('tags:');
+
     let tags = node.tags.map(tag =>
         `${value2TS(tag.name)}: ${value2TS(tag.value)} `);
 
