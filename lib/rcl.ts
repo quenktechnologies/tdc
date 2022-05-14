@@ -348,7 +348,7 @@ const functionCall2TS = ({ id, args }: ast.FunctionCall): Code => {
         let isConstructor = tail(parts) === tail(parts).toUpperCase();
 
         return isConstructor ? `new ${path}(${argsStr})` :
-            `${path}.call(${target}, [${argsStr}])`;
+            `${path}.apply(${target}, [${argsStr}])`;
 
     } else {
 
