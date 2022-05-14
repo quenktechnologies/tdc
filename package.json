@@ -16,8 +16,8 @@
   "author": "Quenk Technologies Limited <info@quenk.com> (http://quenk.com)",
   "license": "Apache-2.0",
   "dependencies": {
-    "@quenk/jcon": "^0.14.9",
-    "@quenk/noni": "^1.41.3",
+    "@quenk/jcon": "^0.14.10",
+    "@quenk/noni": "^1.43.3",
     "@quenk/rcl": "^0.11.1",
     "docopt": "^0.6.2"
   },
@@ -25,9 +25,9 @@
     "@quenk/must": "^1.0.4",
     "@quenk/test": "^2.4.0",
     "@types/mocha": "^8.2.0",
-    "@types/node": "^17.0.21",
+    "@types/node": "^17.0.33",
     "mocha": "^8.2.1",
     "ts-node": "^9.1.1",
-    "typescript": "^4.6.2"
+    "typescript": "^4.6.4"
   }
 }
