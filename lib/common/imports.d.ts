@@ -3,7 +3,7 @@ import { Code } from './output';
 /**
  * Name of variable.
  */
-export declare type Name = string;
+export type Name = string;
 /**
  * Imports is a map of module ids to there paths.
  *

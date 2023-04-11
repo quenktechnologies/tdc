@@ -1,8 +1,8 @@
 /**
  * SourceString to be parsed.
  */
-export declare type SourceString = string;
+export type SourceString = string;
 /**
  * Code is a string containing valid typescript code.
  */
-export declare type Code = string;
+export type Code = string;

@@ -90,7 +90,7 @@ export const parseJCONFile = (ctx: Context, path: Path): Future<ast.File> =>
     ctx
         .loader(path)
         .chain(parse)
-        .catch(onParseFileError(path));
+        .trap(onParseFileError(path));
 
 const onParseFileError = (path: Path) => (e: Error): Future<ast.File> => raise(
     new Error(`An error occurred while parsing file at ` +

@@ -9,10 +9,10 @@ export declare const FILE_START = "start.ts";
 export declare const DEFAULT_MAIN = "@quenk/tendril/lib/app#App";
 export declare const TDC_MERGE_IMPORTS: RegExp;
 export declare const TDC_MERGE_EXPORTS: RegExp;
-declare type ParsedFiles = [JCONFile, RCLFile];
-declare type TypeScript = string;
-declare type JCONFile = jconAst.File;
-declare type RCLFile = rclAst.File;
+type ParsedFiles = [JCONFile, RCLFile];
+type TypeScript = string;
+type JCONFile = jconAst.File;
+type RCLFile = rclAst.File;
 export interface Arguments {
     '<module>': string;
     '--no-recurse': boolean;

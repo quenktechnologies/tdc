@@ -6,11 +6,11 @@ import { Imports } from './common/imports';
  * Loader loads the parsed contents of a RCL file
  * into memory.
  */
-export declare type Loader = (path: string) => Future<string>;
+export type Loader = (path: string) => Future<string>;
 /**
  * Parser turns a text string into a File node.
  */
-export declare type Parser = (src: string) => Future<ast.File>;
+export type Parser = (src: string) => Future<ast.File>;
 /**
  * Context compilation takes place in.
  */

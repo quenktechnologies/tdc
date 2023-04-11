@@ -4,7 +4,7 @@ import { Future } from '@quenk/noni/lib/control/monad/future';
  * Loader loads the parsed contents of a JCON file
  * into memory.
  */
-export declare type Loader = (path: string) => Future<string>;
+export type Loader = (path: string) => Future<string>;
 /**
  * Context the jcon file is complied in.
  */
