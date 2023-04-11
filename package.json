@@ -18,7 +18,7 @@
   "dependencies": {
     "@quenk/jcon": "^0.14.10",
     "@quenk/noni": "^1.43.3",
-    "@quenk/rcl": "^0.11.1",
+    "@quenk/rcl": "^0.12.1",
     "docopt": "^0.6.2"
   },
   "devDependencies": {
